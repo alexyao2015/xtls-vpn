@@ -1,0 +1,11 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+wget \
+    --spider \
+    --timeout=1 \
+    --tries=1 \
+    --quiet \
+    "127.0.0.1:9080/healthz"

@@ -1,0 +1,71 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+# Configure all variables to be exported to be readable by configgen
+set -o allexport
+
+echo "Starting xray config..."
+
+mkdir -p "${GENERATED_CONFIG_PATH}"
+
+# Check if our xray config file exists
+if [ ! -f "${XRAY_CONFIG}" ]; then
+    echo "${XRAY_CONFIG} not found, building a new config"
+
+    XRAY_UUID=$(xray uuid)
+    XRAY_REALITY_SHORT_ID=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
+
+    xray_keys=$(xray x25519)
+    XRAY_REALITY_PRIVATE_KEY=$(echo "${xray_keys}" | grep 'Private key' | cut -d ' ' -f3)
+    XRAY_REALITY_PUBLIC_KEY=$(echo "${xray_keys}" | grep 'Public key' | cut -d ' ' -f3)
+
+    {
+        echo "XRAY_UUID=${XRAY_UUID}"
+        echo "XRAY_REALITY_SHORT_ID=${XRAY_REALITY_SHORT_ID}"
+        echo "XRAY_REALITY_PRIVATE_KEY=${XRAY_REALITY_PRIVATE_KEY}"
+        echo "XRAY_REALITY_PUBLIC_KEY=${XRAY_REALITY_PUBLIC_KEY}"
+    } > "${XRAY_CONFIG}"
+fi
+
+. "${XRAY_CONFIG}"
+
+
+echo "Building xray client configs..."
+
+# Get public IP
+if [ -z "${PUBLIC_IP:+x}" ]; then
+    PUBLIC_IP=$(wget -qO- api.ipify.org)
+fi
+
+CLIENT_CONFIG_PATH="${GENERATED_CONFIG_PATH}/clients"
+# Remove any old generated configs
+if [ -d "${CLIENT_CONFIG_PATH}" ]; then
+    rm -rf "${CLIENT_CONFIG_PATH}"
+fi
+mkdir -p "${CLIENT_CONFIG_PATH}"
+
+
+# loop over all files in data/clients
+for client in /etc/xray/clients/*.yaml; do
+    sed -i "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" "${client}"
+    sed -i "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" "${client}"
+    sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${client}"
+
+    sed -i "s|{{XRAY_UUID}}|${XRAY_UUID}|g" "${client}"
+    sed -i "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" "${client}"
+    sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${client}"
+    sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${client}"
+    sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${client}"
+
+    client_name=$(basename "${client}" .yaml)
+    yq eval-all \
+        '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
+        "${client}" \
+        /config/inbound.yaml \
+        -oj \
+        > "${CLIENT_CONFIG_PATH}/${client_name}.json"
+done
+
+configgen /etc/xray/client_uri.yaml

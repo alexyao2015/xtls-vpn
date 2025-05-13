@@ -1,0 +1,8 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+# At this point, the service may be down. Sending a signal to a dead
+# process will not do anything, so this doesn't hurt.
+s6-svc -h /run/service/nginx-xray

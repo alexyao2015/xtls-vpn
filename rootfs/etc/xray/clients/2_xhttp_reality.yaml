@@ -1,0 +1,67 @@
+log: {}
+inbounds: []
+outbounds:
+  # Outbound 2: xhttp+Reality upstream and downstream are not separated
+  # (upstream is in stream-one mode)
+  - protocol: vless
+    settings:
+      vnext:
+        - address: "{{PUBLIC_IP}}"
+          port: 443
+          users:
+            - id: "{{XRAY_UUID}}"
+              encryption: none
+              level: 0
+    tag: XHTTP+REALITY
+    streamSettings:
+      network: xhttp
+      security: reality
+      realitySettings:
+        show: false
+        serverName: "{{REALITY_DOMAIN}}"
+        fingerprint: chrome
+        publicKey: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        shortId: "{{XRAY_REALITY_SHORT_ID}}"
+        spiderX: /
+      xhttpSettings:
+        # xhttp+reality client can not send host
+        host: ""
+        path: "{{XRAY_XHTTP_PATH}}"
+        # It can also be written as stream-one. Other modes are not effective.
+        mode: auto
+        # The parameters in extra are already optimal by default and can be
+        # left blank
+        # extra:
+        #   noGRPCHeader: false
+        #   # Each POST from the client carries 1MB of data. This only works in
+        #   # packet-up mode and cannot be larger than the value set by the
+        #   # server.
+        #   scMaxEachPostBytes: 1000000
+        #   # The minimum interval for the client to initiate a POST request is 30
+        #   # milliseconds, which only applies to packet-up mode
+        #   scMinPostsIntervalMs: 30
+        #   # The client sends a keep-alive packet every 0 seconds, default 0,
+        #   # that is, 45 seconds for Chrome H2, or 10 seconds for quic-go H3
+        #   xPaddingBytes: 100-1000
+        #   # Only set on the client side
+        #   xmux:
+        #     # Each H2/H3 connection can have a maximum of 16-32 proxy requests
+        #     # at the same time. If the number exceeds this, a new connection
+        #     # will be established.
+        #     maxConcurrency: 16-32
+        #     # Unlimited number of simultaneous connections
+        #     maxConnections: 0
+        #     # Each connection can be reused up to 64-128 times
+        #     cMaxReuseTimes: 64-128
+        #     # No limit on the lifetime of each connection
+        #     cMaxLifetimeMs: 0
+        #     # Each connection can carry up to 800-900 requests
+        #     hMaxRequestTimes: 800-900
+        #     # The client sends a keep-alive packet every 0 seconds, default 0,
+        #     # that is, 45 seconds for Chrome H2, or 10 seconds for quic-go H3
+        #     hKeepAlivePeriod: 0
+      # sockopt:
+      #   # sockopt Set as needed, no need to copy
+      #   tcpFastOpen: true
+      #   tcpMptcp: true
+      #   tcpNoDelay: true

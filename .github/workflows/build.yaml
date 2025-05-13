@@ -1,0 +1,109 @@
+name: Docker Build
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=10000000
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=100000000
+          install: true
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ github.ref_name }}-
+
+      - name: Build
+        run: |
+          set -x
+          docker build \
+            --tag ci:${{ github.run_number }} \
+            --progress plain \
+            --file ./Dockerfile \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new \
+            --load \
+            .
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+      - name: Inspect
+        run: |
+          set -x
+          docker image inspect ci:${{ github.run_number }}
+      - name: Save tarball
+        run: |
+          set -x
+          docker save ci:${{ github.run_number }} | gzip > ci-${{ github.run_number }}.tar.gz
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-${{ github.run_number }}
+          path: ci-${{ github.run_number }}.tar.gz
+
+  publish:
+    name: Publish Image
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    if: ${{ !startsWith(github.ref, 'refs/pull/') && !startsWith(github.ref, 'refs/heads/dependabot/') }}
+    strategy:
+      matrix:
+        registry:
+          - {
+              url: ghcr.io/alexyao2015,
+              username: GCHR_USERNAME,
+              password: GHCR_PAT,
+              repo: ghcr.io/alexyao2015/xtls-vpn,
+            }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download container artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-${{ github.run_number }}
+
+      - name: Import image
+        run: |
+          docker load --input ci-${{ github.run_number }}.tar.gz
+      - name: Docker login
+        run: |
+          docker login ${{ matrix.registry.url }} -u ${{ secrets[matrix.registry.username] }} -p ${{ secrets[matrix.registry.password] }}
+
+      - name: Push image (run number)
+        run: |
+          set -x
+          docker tag ci:${{ github.run_number }} ${{ matrix.registry.repo }}:${{ github.run_number }}
+          docker push ${{ matrix.registry.repo }}:${{ github.run_number }}
+
+      - name: Push image (branch)
+        run: |
+          set -x
+          docker tag ci:${{ github.run_number }} ${{ matrix.registry.repo }}:${{ github.ref_name }}
+          docker push ${{ matrix.registry.repo }}:${{ github.ref_name }}

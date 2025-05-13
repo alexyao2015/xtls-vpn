@@ -1,0 +1,27 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+echo "Starting xray..."
+
+XRAY_SERVER_CONFIG="/etc/xray/server.json"
+
+yq eval-all \
+    '.outbounds += (select(fi == 1).outbounds) | select(fi == 0)' \
+    /etc/xray/server.yaml \
+    /config/outbound.yaml \
+    -oj \
+    > "${XRAY_SERVER_CONFIG}"
+
+sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${XRAY_SERVER_CONFIG}"
+sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${XRAY_SERVER_CONFIG}"
+sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${XRAY_SERVER_CONFIG}"
+
+# Load all xray variables from xray-config
+. "${XRAY_CONFIG}"
+sed -i "s|{{XRAY_UUID}}|${XRAY_UUID}|g" "${XRAY_SERVER_CONFIG}"
+sed -i "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" "${XRAY_SERVER_CONFIG}"
+sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${XRAY_SERVER_CONFIG}"
+
+exec xray run -c "${XRAY_SERVER_CONFIG}"

@@ -1,0 +1,21 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+echo "Starting nginx-xray..."
+
+NGINX_CONFIG="${PWD}/data/nginx.conf"
+
+sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${NGINX_CONFIG}"
+sed -i "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" "${NGINX_CONFIG}"
+sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${NGINX_CONFIG}"
+sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${NGINX_CONFIG}"
+
+sed -i "s|{{REALITY_DOMAIN_PROXY_SITE}}|${REALITY_DOMAIN_PROXY_SITE}|g" "${NGINX_CONFIG}"
+sed -i "s|{{XHTTP_DOMAIN_PROXY_SITE}}|${XHTTP_DOMAIN_PROXY_SITE}|g" "${NGINX_CONFIG}"
+
+sed -i "s|{{CERTBOT_LIVE_CERT_PATH}}|${CERTBOT_LIVE_CERT_PATH}|g" "${NGINX_CONFIG}"
+
+exec s6-notifyoncheck -n 0 \
+    nginx -g 'daemon off;' -c "${NGINX_CONFIG}"

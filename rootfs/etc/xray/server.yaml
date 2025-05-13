@@ -1,0 +1,133 @@
+log:
+  loglevel: debug
+inbounds:
+  - listen: 0.0.0.0
+    port: 443
+    protocol: vless
+    settings:
+      clients:
+        - id: "{{XRAY_UUID}}"
+          level: 0
+          email: general@vless-vision
+          flow: xtls-rprx-vision
+      decryption: none
+      fallbacks:
+        # fallback to xhttp
+        - dest: /dev/shm/xhttp_client_upload.sock
+          xver: 0
+    streamSettings:
+      network: raw
+      security: reality
+      realitySettings:
+        show: false
+        # the "reality" website is the nginx proxied site
+        dest: /dev/shm/nginx.sock
+        xver: 0
+        serverNames:
+          - "{{REALITY_DOMAIN}}"
+        privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
+        shortIds:
+          # If this item exists, client shortId can be empty
+          - ""
+          # 0 to f, length is a multiple of 2, maximum length is 16
+          - "{{XRAY_REALITY_SHORT_ID}}"
+      # sockopt:
+      #   tcpFastOpen: true
+      #   tcpcongestion: bbr
+      #   tcpMptcp: true
+      #   tcpNoDelay: true
+    tag: VISION+REALITY
+    # sniffing:
+    #   enabled: true
+    #   destOverride:
+    #     - http
+    #     - tls
+    #     - quic
+    #   metadataOnly: false
+    #   routeOnly: true
+  - listen: /dev/shm/xhttp_client_upload.sock,0666
+    protocol: vless
+    settings:
+      clients:
+        - id: "{{XRAY_UUID}}"
+          level: 0
+          email: general@vless-xhttp
+      decryption: none
+    streamSettings:
+      network: xhttp
+      xhttpSettings:
+        # It is recommended that the server does not verify the host, which will
+        # allow the client to have more gameplay
+        host: ""
+        path: "{{XRAY_XHTTP_PATH}}"
+        # The server is recommended to be set to auto, allowing all client
+        # upload modes, which will give the client more gameplay
+        mode: auto
+        # The parameters in extra are already optimal by default and can be left
+        # blank.
+        extra:
+          # Server only, set to true if there are compatibility issues
+          noSSEHeader: false
+          # Allows the client to carry 1MB of data per POST, only works in
+          # packet-up mode
+          scMaxEachPostBytes: 1000000
+          # The server caches up to 30 POST requests, only in packet-up mode
+          # (only set on the server)
+          scMaxBufferedPosts: 30
+          xPaddingBytes: 100-1000
+      sockopt:
+        tcpFastOpen: true
+        # When using nginx for reverse proxying, it must be set to false (the
+        # default is false, so it is optional)
+        acceptProxyProtocol: false
+        tcpcongestion: bbr
+        tcpMptcp: true
+        tcpNoDelay: true
+    tag: XHTTP_IN
+    # sniffing:
+    #   enabled: true
+    #   destOverride:
+    #     - http
+    #     - tls
+    #     - quic
+    #   metadataOnly: false
+    #   routeOnly: true
+  - listen: 0.0.0.0
+    port: 3001
+    protocol: vless
+    settings:
+      clients:
+        - id: "{{XRAY_UUID}}"
+          level: 0
+          email: general@vless-ws
+      decryption: none
+      fallbacks:
+        - path: "{{XRAY_WS_PATH}}"
+          dest: "@vless-ws"
+          xver: 1
+    streamSettings:
+      network: tcp
+  - listen: "@vless-ws"
+    protocol: vless
+    settings:
+      clients:
+        - id: "{{XRAY_UUID}}"
+          level: 0
+          email: general@vless-ws
+      decryption: none
+    streamSettings:
+      network: ws
+      security: none
+      wsSettings:
+        acceptProxyProtocol: true
+        path: "{{XRAY_WS_PATH}}"
+    tag: WS_IN
+    # sniffing:
+    #   enabled: true
+    #   destOverride:
+    #     - http
+    #     - tls
+    #     - quic
+    #   metadataOnly: false
+    #   routeOnly: true
+outbounds: []

@@ -1,0 +1,34 @@
+log: {}
+inbounds: []
+outbounds:
+  # Outbound 1: XTLS+Reality
+  - protocol: vless
+    settings:
+      vnext:
+        - address: "{{PUBLIC_IP}}"
+          port: 443
+          users:
+            - id: "{{XRAY_UUID}}"
+              encryption: none
+              flow: xtls-rprx-vision
+              level: 0
+    tag: VISION+REALITY
+    streamSettings:
+      network: raw
+      security: reality
+      realitySettings:
+        show: false
+        serverName: "{{REALITY_DOMAIN}}"
+        fingerprint: chrome
+        publicKey: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        shortId: "{{XRAY_REALITY_SHORT_ID}}"
+        spiderX: /
+      # sockopt:
+      #   tcpFastOpen: true
+      #   tcpMptcp: true
+      #   tcpNoDelay: true
+    mux:
+      enabled: true
+      concurrency: -1
+      xudpConcurrency: 16
+      xudpProxyUDP443: reject

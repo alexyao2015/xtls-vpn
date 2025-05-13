@@ -1,0 +1,13 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+echo "Starting nginx-80..."
+
+NGINX_CONFIG="${PWD}/data/nginx.conf"
+
+sed -i "s|{{CERTBOT_CONFIG_PATH_WWW}}|${CERTBOT_CONFIG_PATH_WWW}|g" "${NGINX_CONFIG}"
+
+exec s6-notifyoncheck -n 0 \
+    nginx -g 'daemon off;' -c "${NGINX_CONFIG}"

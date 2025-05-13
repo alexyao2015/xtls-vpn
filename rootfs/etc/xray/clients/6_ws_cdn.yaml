@@ -1,0 +1,26 @@
+log:
+  loglevel: warning
+inbounds: []
+outbounds:
+  # Outbound 6: Upstream CDN ws | Downstream CDN ws
+  - protocol: vless
+    settings:
+      vnext:
+        - address: "{{XHTTP_DOMAIN}}"
+          port: 443
+          users:
+            - id: "{{XRAY_UUID}}"
+              encryption: none
+              level: 0
+    tag: CDN_WS
+    streamSettings:
+      network: ws
+      security: tls
+      tlsSettings:
+        serverName: "{{XHTTP_DOMAIN}}"
+        allowInsecure: false
+        alpn:
+          - h2
+        fingerprint: chrome
+      wsSettings:
+        path: "{{XRAY_WS_PATH}}"

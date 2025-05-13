@@ -1,0 +1,36 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'configgen'",
+      "cargo": {
+        "args": ["build", "--bin=configgen", "--package=configgen"],
+        "filter": {
+          "name": "configgen",
+          "kind": "bin"
+        },
+        "cwd": "${workspaceFolder}/configgen"
+      },
+      "args": ["${workspaceFolder}/rootfs/etc/xray/client_uri.yaml"],
+      "env": {
+        "REALITY_DOMAIN": "realitydomain",
+        "XHTTP_DOMAIN": "xhttpdomain",
+        "XRAY_XHTTP_PATH": "xhttppath",
+        "XRAY_WS_PATH": "wspath",
+        "REALITY_DOMAIN_PROXY_SITE": "realityproxy",
+        "XHTTP_DOMAIN_PROXY_SITE": "xhttpproxy",
+        "XRAY_UUID": "uuid",
+        "XRAY_REALITY_SHORT_ID": "shortid",
+        "XRAY_REALITY_PRIVATE_KEY": "privatekey",
+        "XRAY_REALITY_PUBLIC_KEY": "publickey",
+        "PUBLIC_IP": "publicip"
+      },
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

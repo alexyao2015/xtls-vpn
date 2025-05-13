@@ -1,0 +1,125 @@
+clients:
+  - xtls_reality:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        security: "reality"
+        encryption: "none"
+        pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        headerType: "none"
+        fp: "chrome"
+        spx: "/"
+        type: "tcp"
+        flow: "xtls-rprx-vision"
+        sni: "{{REALITY_DOMAIN}}"
+        sid: "{{XRAY_REALITY_SHORT_ID}}"
+  - xhttp_reality:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "reality"
+        encryption: "none"
+        pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        fp: "chrome"
+        spx: "/"
+        type: "xhttp"
+        sni: "{{REALITY_DOMAIN}}"
+        sid: "{{XRAY_REALITY_SHORT_ID}}"
+  - xhttp_cdn_xhttp_reality:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{XHTTP_DOMAIN}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        extra:
+          downloadSettings:
+            address: "{{PUBLIC_IP}}"
+            port: 443
+            network: "xhttp"
+            security: "reality"
+            realitySettings:
+              show: false
+              serverName: "{{REALITY_DOMAIN}}"
+              fingerprint: "chrome"
+              publicKey: "{{XRAY_REALITY_PUBLIC_KEY}}"
+              shortId: "{{XRAY_REALITY_SHORT_ID}}"
+              spiderX: "/"
+            xhttpSettings:
+              host: ""
+              path: "{{XRAY_XHTTP_PATH}}"
+              mode: "auto"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "xhttp"
+        sni: "{{REALITY_DOMAIN}}"
+  - xhttp_cdn:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{XHTTP_DOMAIN}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "xhttp"
+        sni: "{{XHTTP_DOMAIN}}"
+  - xhttp_reality_xhttp_cdn:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "reality"
+        encryption: "none"
+        extra:
+          downloadSettings:
+            address: "{{XHTTP_DOMAIN}}"
+            port: 443
+            network: "xhttp"
+            security: "tls"
+            tlsSettings:
+              serverName: "{{XHTTP_DOMAIN}}"
+              allowInsecure: true
+              alpn: "h2"
+              fingerprint: "chrome"
+            xhttpSettings:
+              host: "{{XHTTP_DOMAIN}}"
+              path: "{{XRAY_XHTTP_PATH}}"
+              mode: "auto"
+        pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        fp: "chrome"
+        spx: "/"
+        type: "xhttp"
+        sni: "{{REALITY_DOMAIN}}"
+        sid: "{{XRAY_REALITY_SHORT_ID}}"
+  - ws_cdn:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{XHTTP_DOMAIN}}"
+      port: 443
+      params:
+        path: "{{XRAY_WS_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "ws"
+        sni: "{{XHTTP_DOMAIN}}"
