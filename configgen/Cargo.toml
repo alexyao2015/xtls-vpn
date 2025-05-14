@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.38", features = ["derive"] }
+indexmap = "2.9.0"
 qrcode = "0.14.1"
 regex = "1.10.3"
 serde = { version = "1.0", features = ["derive"] }

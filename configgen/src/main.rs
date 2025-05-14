@@ -1,4 +1,5 @@
 use clap::Parser;
+use indexmap::IndexMap;
 use qrcode::render::unicode;
 use qrcode::render::unicode::Dense1x2;
 use qrcode::QrCode;
@@ -132,7 +133,7 @@ fn print_url_with_qr(name: &str, url: &str) {
     println!("{}:\n{}\n{}\n", name, url, qrstring);
 }
 
-fn write_urls_to_file(file: &mut fs::File, urls: &HashMap<String, String>) -> Result<(), String> {
+fn write_urls_to_file(file: &mut fs::File, urls: &IndexMap<String, String>) -> Result<(), String> {
     for url in urls.values() {
         writeln!(file, "{}", url).map_err(|e| e.to_string())?;
     }
@@ -141,7 +142,7 @@ fn write_urls_to_file(file: &mut fs::File, urls: &HashMap<String, String>) -> Re
 
 fn main() -> Result<(), String> {
     let args = Args::parse();
-    let mut urls = HashMap::new();
+    let mut urls = IndexMap::new();
 
     let yaml_content = fs::read_to_string(&args.yaml_file).map_err(|e| e.to_string())?;
     let mut config: Config = serde_yaml::from_str(&yaml_content).map_err(|e| e.to_string())?;

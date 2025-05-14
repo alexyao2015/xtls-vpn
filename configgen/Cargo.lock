@@ -130,6 +130,7 @@ name = "configgen"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "indexmap",
  "qrcode",
  "regex",
  "serde",
