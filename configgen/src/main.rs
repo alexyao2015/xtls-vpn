@@ -1,3 +1,4 @@
+use clap::Parser;
 use qrcode::render::unicode;
 use qrcode::render::unicode::Dense1x2;
 use qrcode::QrCode;
@@ -8,6 +9,7 @@ use serde_yaml;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::io::Write;
 use url::Url;
 use urlencoding;
 
@@ -29,6 +31,18 @@ struct NamedClient {
 #[derive(Debug, Deserialize)]
 struct Config {
     clients: Vec<NamedClient>,
+}
+
+/// A tool to generate configuration URLs from YAML files
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Path to the YAML configuration file
+    yaml_file: String,
+
+    /// Output file to write URLs to
+    #[arg(short, long)]
+    output: Option<String>,
 }
 
 fn replace_env_vars(value: &str) -> Result<String, String> {
@@ -118,13 +132,18 @@ fn print_url_with_qr(name: &str, url: &str) {
     println!("{}:\n{}\n{}\n", name, url, qrstring);
 }
 
-fn main() -> Result<(), String> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        return Err("Usage: configgen <yaml_file>".to_string());
+fn write_urls_to_file(file: &mut fs::File, urls: &HashMap<String, String>) -> Result<(), String> {
+    for url in urls.values() {
+        writeln!(file, "{}", url).map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
 
-    let yaml_content = fs::read_to_string(&args[1]).map_err(|e| e.to_string())?;
+fn main() -> Result<(), String> {
+    let args = Args::parse();
+    let mut urls = HashMap::new();
+
+    let yaml_content = fs::read_to_string(&args.yaml_file).map_err(|e| e.to_string())?;
     let mut config: Config = serde_yaml::from_str(&yaml_content).map_err(|e| e.to_string())?;
 
     // Process environment variables in the config
@@ -137,10 +156,22 @@ fn main() -> Result<(), String> {
                 process_value(&serde_yaml::to_value(&client.params).map_err(|e| e.to_string())?)?;
             client.params = serde_yaml::from_value(processed_params).map_err(|e| e.to_string())?;
 
-            // Generate URL and print with QR code
+            // Generate URL
             let url = generate_url(name, client)?;
-            print_url_with_qr(name, &url);
+
+            // Store URL with client name
+            urls.insert(name.clone(), url);
         }
+    }
+
+    for (name, url) in &urls {
+        print_url_with_qr(name, url);
+    }
+
+    // Write all URLs to file if specified
+    if let Some(output_path) = args.output {
+        let mut file = fs::File::create(output_path).map_err(|e| e.to_string())?;
+        write_urls_to_file(&mut file, &urls)?;
     }
 
     Ok(())

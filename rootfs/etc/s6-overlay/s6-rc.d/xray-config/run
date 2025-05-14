@@ -68,4 +68,4 @@ for client in /etc/xray/clients/*.yaml; do
         > "${CLIENT_CONFIG_PATH}/${client_name}.json"
 done
 
-configgen /etc/xray/client_uri.yaml
+configgen /etc/xray/client_uri.yaml -o /etc/xray/client_uri.txt

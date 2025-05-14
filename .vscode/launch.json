@@ -16,7 +16,11 @@
         },
         "cwd": "${workspaceFolder}/configgen"
       },
-      "args": ["${workspaceFolder}/rootfs/etc/xray/client_uri.yaml"],
+      "args": [
+        "${workspaceFolder}/rootfs/etc/xray/client_uri.yaml",
+        "-o",
+        "output.txt"
+      ],
       "env": {
         "REALITY_DOMAIN": "realitydomain",
         "XHTTP_DOMAIN": "xhttpdomain",
