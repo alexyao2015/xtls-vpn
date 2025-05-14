@@ -62,7 +62,7 @@ clients:
         host: "{{XHTTP_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
-        sni: "{{REALITY_DOMAIN}}"
+        sni: "{{XHTTP_DOMAIN}}"
   - 4_xhttp_cdn:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
