@@ -1,5 +1,5 @@
 clients:
-  - xtls_reality:
+  - 1_xtls_reality:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{PUBLIC_IP}}"
@@ -15,7 +15,7 @@ clients:
         flow: "xtls-rprx-vision"
         sni: "{{REALITY_DOMAIN}}"
         sid: "{{XRAY_REALITY_SHORT_ID}}"
-  - xhttp_reality:
+  - 2_xhttp_reality:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{PUBLIC_IP}}"
@@ -31,7 +31,7 @@ clients:
         type: "xhttp"
         sni: "{{REALITY_DOMAIN}}"
         sid: "{{XRAY_REALITY_SHORT_ID}}"
-  - xhttp_cdn_xhttp_reality:
+  - 3_xhttp_cdn_xhttp_reality:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{XHTTP_DOMAIN}}"
@@ -63,7 +63,7 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{REALITY_DOMAIN}}"
-  - xhttp_cdn:
+  - 4_xhttp_cdn:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{XHTTP_DOMAIN}}"
@@ -78,7 +78,7 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{XHTTP_DOMAIN}}"
-  - xhttp_reality_xhttp_cdn:
+  - 5_xhttp_reality_xhttp_cdn:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{PUBLIC_IP}}"
@@ -109,7 +109,7 @@ clients:
         type: "xhttp"
         sni: "{{REALITY_DOMAIN}}"
         sid: "{{XRAY_REALITY_SHORT_ID}}"
-  - ws_cdn:
+  - 6_ws_cdn:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{XHTTP_DOMAIN}}"
