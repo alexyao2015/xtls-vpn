@@ -25,6 +25,14 @@ inbounds:
         xver: 0
         serverNames:
           - "{{REALITY_DOMAIN}}"
+          # Allow some additional commonly unrestricted domains
+          - "speed.cloudflare.com"
+          - "cloudflare.com"
+          - "www.cloudflare.com"
+          - "fastly.net"
+          - "www.fastly.net"
+          - "akamai.com"
+          - "www.akamai.com"
         privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
         shortIds:
           # If this item exists, client shortId can be empty
