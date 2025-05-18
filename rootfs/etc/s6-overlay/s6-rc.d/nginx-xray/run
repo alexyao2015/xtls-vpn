@@ -5,10 +5,14 @@ set -eou pipefail
 
 echo "Starting nginx-xray..."
 
+# Load all xray variables from xray-config
+. "${XRAY_CONFIG}"
+
 NGINX_CONFIG="${PWD}/data/nginx.conf"
 
 sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${NGINX_CONFIG}"
 sed -i "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" "${NGINX_CONFIG}"
+sed -i "s|{{XRAY_PATH}}|${XRAY_PATH}|g" "${NGINX_CONFIG}"
 sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${NGINX_CONFIG}"
 sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${NGINX_CONFIG}"
 
