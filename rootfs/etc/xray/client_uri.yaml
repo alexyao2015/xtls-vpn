@@ -123,3 +123,18 @@ clients:
         fp: "chrome"
         type: "ws"
         sni: "{{XHTTP_DOMAIN}}"
+  - 7_xhttp:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "xhttp"
+        sni: "{{XHTTP_DOMAIN}}"
