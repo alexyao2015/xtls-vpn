@@ -6,7 +6,7 @@ set -eou pipefail
 echo "Starting nginx-xray..."
 
 # Load all xray variables from xray-config
-. "${XRAY_CONFIG}"
+. "${XRAY_RUNTIME_CONFIG}"
 
 NGINX_CONFIG="${PWD}/data/nginx.conf"
 

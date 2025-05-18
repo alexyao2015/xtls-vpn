@@ -26,13 +26,16 @@ if [ ! -f "${XRAY_CONFIG}" ]; then
         echo "XRAY_REALITY_SHORT_ID=${XRAY_REALITY_SHORT_ID}"
         echo "XRAY_REALITY_PRIVATE_KEY=${XRAY_REALITY_PRIVATE_KEY}"
         echo "XRAY_REALITY_PUBLIC_KEY=${XRAY_REALITY_PUBLIC_KEY}"
-        echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
-        echo "XRAY_WS_PATH=${XRAY_PATH}/ws"
     } > "${XRAY_CONFIG}"
 fi
 
-. "${XRAY_CONFIG}"
+{
+    echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
+    echo "XRAY_WS_PATH=${XRAY_PATH}/ws"
+} > "${XRAY_RUNTIME_CONFIG}"
 
+. "${XRAY_CONFIG}"
+. "${XRAY_RUNTIME_CONFIG}"
 
 echo "Building xray client configs..."
 

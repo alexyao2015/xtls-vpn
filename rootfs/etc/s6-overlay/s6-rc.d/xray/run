@@ -20,6 +20,7 @@ sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${XRAY_SERVER_CONFIG}"
 
 # Load all xray variables from xray-config
 . "${XRAY_CONFIG}"
+
 sed -i "s|{{XRAY_UUID}}|${XRAY_UUID}|g" "${XRAY_SERVER_CONFIG}"
 sed -i "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" "${XRAY_SERVER_CONFIG}"
 sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${XRAY_SERVER_CONFIG}"
