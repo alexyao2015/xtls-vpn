@@ -16,6 +16,7 @@ outbounds:
       network: xhttp
       security: tls
       tlsSettings:
+        # What the outside dpi engine sees
         serverName: "{{XHTTP_DOMAIN}}"
         allowInsecure: false
         alpn:
@@ -24,7 +25,9 @@ outbounds:
           - h2
         fingerprint: chrome
       xhttpSettings:
-        # xhttp must fill in host when passing through nginx
+        # Once tls is unwrapped, the host is passed to nginx to determine
+        # where the xhttp socket is located. This should never be changed and
+        # cannot be identified by the outside dpi engine.
         host: "{{XHTTP_DOMAIN}}"
         path: "{{XRAY_XHTTP_PATH}}"
         # It can also be written as stream-one. Other modes are not effective.

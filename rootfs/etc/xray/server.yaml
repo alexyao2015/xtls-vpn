@@ -12,13 +12,14 @@ inbounds:
           flow: xtls-rprx-vision
       decryption: none
       fallbacks:
-        # fallback to xhttp
-        - dest: /dev/shm/xhttp_client_upload.sock
+        # fallback reality non vision connections to xhttp
+        - dest: /dev/shm/xhttp.sock
           xver: 0
     streamSettings:
       network: raw
       security: reality
       realitySettings:
+        # disable verbose logging
         show: false
         # the "reality" website is the nginx proxied site
         dest: /dev/shm/nginx.sock
@@ -73,7 +74,7 @@ inbounds:
     #     - quic
     #   metadataOnly: false
     #   routeOnly: true
-  - listen: /dev/shm/xhttp_client_upload.sock,0666
+  - listen: /dev/shm/xhttp.sock,0666
     protocol: vless
     settings:
       clients:
