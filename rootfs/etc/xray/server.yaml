@@ -32,6 +32,8 @@ inbounds:
           - "www.cloudflare.com"
           - "fastly.net"
           - "www.fastly.net"
+          - "fastly.com"
+          - "www.fastly.com"
           - "akamai.com"
           - "www.akamai.com"
           - "signal.org"
@@ -54,6 +56,10 @@ inbounds:
           - "www.clearme.com"
           - "flightaware.com"
           - "www.flightaware.com"
+          - "vultr.com"
+          - "www.vultr.com"
+          - "apple.com"
+          - "www.apple.com"
         privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
         shortIds:
           # If this item exists, client shortId can be empty
