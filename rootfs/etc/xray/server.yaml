@@ -60,6 +60,16 @@ inbounds:
           - "www.vultr.com"
           - "apple.com"
           - "www.apple.com"
+          - "amazon.com"
+          - "www.amazon.com"
+          - "meteversecloud.com"
+          - "i0.hdslb.com"
+          - "s0.hdslb.com"
+          - "s1.hdslb.com"
+          - "api.bilibili.com"
+          - "www.bilibili.com"
+          - "bilibili.com"
+          - "akamaized.net"
         privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
         shortIds:
           # If this item exists, client shortId can be empty
