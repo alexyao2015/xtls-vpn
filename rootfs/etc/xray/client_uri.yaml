@@ -96,7 +96,7 @@ clients:
             security: "tls"
             tlsSettings:
               serverName: "{{XHTTP_DOMAIN}}"
-              allowInsecure: true
+              allowInsecure: false
               alpn: "h2"
               fingerprint: "chrome"
             xhttpSettings:
@@ -138,3 +138,5 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{XHTTP_DOMAIN}}"
+        # Allow insecure to enable client to change sni at will
+        allowInsecure: "1"
