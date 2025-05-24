@@ -39,6 +39,7 @@ COPY --from=configgen_builder /build/target/release/configgen /usr/bin/configgen
 COPY rootfs /
 
 ENV \
+    S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
     NGINX_SSL_PATH="/etc/ssl" \
     GENERATED_CONFIG_PATH="/config/generated"
 
