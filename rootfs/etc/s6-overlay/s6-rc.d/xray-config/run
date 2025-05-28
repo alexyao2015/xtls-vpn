@@ -32,6 +32,7 @@ fi
 {
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
     echo "XRAY_WS_PATH=${XRAY_PATH}/ws"
+    echo "XRAY_TROJAN_PATH=${XRAY_PATH}/trojan"
 } > "${XRAY_RUNTIME_CONFIG}"
 
 . "${XRAY_CONFIG}"

@@ -137,8 +137,7 @@ inbounds:
     #     - quic
     #   metadataOnly: false
     #   routeOnly: true
-  - listen: 0.0.0.0
-    port: 3001
+  - listen: /dev/shm/ws.sock,0666
     protocol: vless
     settings:
       clients:
@@ -175,4 +174,16 @@ inbounds:
     #     - quic
     #   metadataOnly: false
     #   routeOnly: true
+  - listen: /dev/shm/trojan.sock,0666
+    protocol: trojan
+    settings:
+      clients:
+        - password: "{{XRAY_UUID}}"
+          email: general@trojan
+    streamSettings:
+      network: grpc
+      security: none
+      grpcSettings:
+        serviceName: "{{XRAY_TROJAN_PATH}}"
+    tag: TROJAN_IN
 outbounds: []

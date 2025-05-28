@@ -140,3 +140,18 @@ clients:
         sni: "{{XHTTP_DOMAIN}}"
         # Allow insecure to enable client to change sni at will
         allowInsecure: "1"
+  - 8_trojan:
+      protocol: "trojan"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        mode: "gun"
+        security: "tls"
+        alpn: "h2"
+        fp: "chrome"
+        type: "grpc"
+        serviceName: "{{XRAY_TROJAN_PATH}}"
+        sni: "{{XHTTP_DOMAIN}}"
+        # Allow insecure to enable client to change sni at will
+        allowInsecure: "1"

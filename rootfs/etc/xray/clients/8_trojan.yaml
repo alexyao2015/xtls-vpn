@@ -1,0 +1,35 @@
+log: {}
+inbounds: []
+outbounds:
+  # Outbound 8: Trojan
+  - protocol: trojan
+    settings:
+      servers:
+        - address: "{{PUBLIC_IP}}"
+          port: 443
+          password: "{{XRAY_UUID}}"
+    streamSettings:
+      network: grpc
+      security: tls
+      tlsSettings:
+        # What the outside dpi engine sees
+        serverName: "{{XHTTP_DOMAIN}}"
+        # Allow insecure to enable client to change sni at will By default, this
+        # will work with false, but will not allow arbitrary SNI.
+        allowInsecure: true
+        alpn:
+          # h2 is already very smooth, if your CDN supports h3 and the UDP QoS
+          # in your region is not severe, you can fill in "h3"
+          - h2
+        fingerprint: chrome
+      grpcSettings:
+        serviceName: "{{XRAY_TROJAN_PATH}}"
+        # When no data is transferred during this time, a health check will be
+        # performed. It may solve some "broken flow" problems.
+        idle_timeout: 60
+        # When passing through Cloudflare CDN, prevent Cloudflare CDN from
+        # sending unexpected h2 GOAWAY frames to close existing connections.
+        initial_windows_size: 65536
+        # When passing through Cloudflare CDN and idle (no subconnection),
+        # prevent Cloudflare CDN from closing the connection.
+        permit_without_stream: true
