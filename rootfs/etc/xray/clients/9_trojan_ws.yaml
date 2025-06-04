@@ -1,0 +1,21 @@
+log: {}
+inbounds: []
+outbounds:
+  # Outbound 9: Trojan WS
+  - protocol: trojan
+    settings:
+      servers:
+        - address: "{{PUBLIC_IP}}"
+          port: 443
+          password: "{{XRAY_UUID}}"
+    streamSettings:
+      network: ws
+      security: tls
+      tlsSettings:
+        serverName: "{{XHTTP_DOMAIN}}"
+        allowInsecure: true
+        alpn:
+          - h2
+        fingerprint: chrome
+      wsSettings:
+        path: "{{XRAY_TROJAN_WS_PATH}}"

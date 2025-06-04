@@ -155,3 +155,19 @@ clients:
         sni: "{{XHTTP_DOMAIN}}"
         # Allow insecure to enable client to change sni at will
         allowInsecure: "1"
+  - 9_trojan_ws:
+      protocol: "trojan"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        path: "{{XRAY_TROJAN_WS_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "ws"
+        sni: "{{XHTTP_DOMAIN}}"
+        # Allow insecure to enable client to change sni at will
+        allowInsecure: "1"
