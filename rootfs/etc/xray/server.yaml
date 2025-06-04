@@ -145,25 +145,10 @@ inbounds:
           level: 0
           email: general@vless-ws
       decryption: none
-      fallbacks:
-        - path: "{{XRAY_WS_PATH}}"
-          dest: "@vless-ws"
-          xver: 1
-    streamSettings:
-      network: tcp
-  - listen: "@vless-ws"
-    protocol: vless
-    settings:
-      clients:
-        - id: "{{XRAY_UUID}}"
-          level: 0
-          email: general@vless-ws
-      decryption: none
     streamSettings:
       network: ws
       security: none
       wsSettings:
-        acceptProxyProtocol: true
         path: "{{XRAY_WS_PATH}}"
     tag: WS_IN
     # sniffing:
