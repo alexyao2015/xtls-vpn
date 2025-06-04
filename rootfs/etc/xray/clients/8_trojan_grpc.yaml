@@ -1,7 +1,7 @@
 log: {}
 inbounds: []
 outbounds:
-  # Outbound 8: Trojan
+  # Outbound 8: Trojan GRPC
   - protocol: trojan
     settings:
       servers:
@@ -23,7 +23,7 @@ outbounds:
           - h2
         fingerprint: chrome
       grpcSettings:
-        serviceName: "{{XRAY_TROJAN_PATH}}"
+        serviceName: "{{XRAY_TROJAN_GRPC_PATH}}"
         # When no data is transferred during this time, a health check will be
         # performed. It may solve some "broken flow" problems.
         idle_timeout: 60

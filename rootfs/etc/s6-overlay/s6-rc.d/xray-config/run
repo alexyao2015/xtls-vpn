@@ -32,7 +32,7 @@ fi
 {
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
     echo "XRAY_WS_PATH=${XRAY_PATH}/ws"
-    echo "XRAY_TROJAN_PATH=${XRAY_PATH}/trojan"
+    echo "XRAY_TROJAN_GRPC_PATH=${XRAY_PATH}/trojan/grpc"
 } > "${XRAY_RUNTIME_CONFIG}"
 
 . "${XRAY_CONFIG}"
@@ -64,7 +64,7 @@ for client in /etc/xray/clients/*.yaml; do
     sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${client}"
     sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${client}"
     sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${client}"
-    sed -i "s|{{XRAY_TROJAN_PATH}}|${XRAY_TROJAN_PATH}|g" "${client}"
+    sed -i "s|{{XRAY_TROJAN_GRPC_PATH}}|${XRAY_TROJAN_GRPC_PATH}|g" "${client}"
 
     client_name=$(basename "${client}" .yaml)
     yq eval-all \

@@ -159,16 +159,16 @@ inbounds:
     #     - quic
     #   metadataOnly: false
     #   routeOnly: true
-  - listen: /dev/shm/trojan.sock,0666
+  - listen: /dev/shm/trojan_grpc.sock,0666
     protocol: trojan
     settings:
       clients:
         - password: "{{XRAY_UUID}}"
-          email: general@trojan
+          email: general@trojangrpc
     streamSettings:
       network: grpc
       security: none
       grpcSettings:
-        serviceName: "{{XRAY_TROJAN_PATH}}"
-    tag: TROJAN_IN
+        serviceName: "{{XRAY_TROJAN_GRPC_PATH}}"
+    tag: TROJAN_GRPC_IN
 outbounds: []
