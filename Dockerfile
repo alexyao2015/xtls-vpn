@@ -33,7 +33,7 @@ RUN apk add --no-cache \
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-COPY --from=ghcr.io/xtls/xray-core:25.6.8 /usr/local/bin/xray /usr/bin/xray
+COPY --from=ghcr.io/xtls/xray-core:25.8.3 /usr/local/bin/xray /usr/bin/xray
 COPY --from=configgen_builder /build/target/release/configgen /usr/bin/configgen
 
 COPY rootfs /
