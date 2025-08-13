@@ -5,6 +5,13 @@ set -eou pipefail
 
 echo "Starting certbot..."
 
+if [ "${SELF_SIGNED_CERT}" = "true" ]; then
+    echo "Self-signed certificate is enabled"
+    # keep the service alive and mark as up
+    fdmove 1 3 echo ""
+    sleep infinity
+fi
+
 STAGING_FLAG=""
 if [ "${LETSENCRYPT_STAGING}" = "true" ]; then
     echo "Certbot is in staging mode"

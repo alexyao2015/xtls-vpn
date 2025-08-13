@@ -1,0 +1,68 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+echo "Starting openssl cert..."
+
+if [ "${SELF_SIGNED_CERT}" != "true" ]; then
+    echo "Self-signed certificate is not enabled"
+    exit 0
+fi
+
+# Create certs in the same structure as certbot would:
+# ${CERTBOT_LIVE_CERT_PATH}/${DOMAIN}/{fullchain.pem,chain.pem,privkey.pem}
+
+create_self_signed_cert_for_domain() {
+    domain="$1"
+
+    domain_dir="${CERTBOT_LIVE_CERT_PATH}/${domain}"
+    rm -rf "${domain_dir}"
+    mkdir -p "${domain_dir}"
+
+    # Temporary OpenSSL config to set SAN
+    tmp_conf=$(mktemp)
+    cat > "${tmp_conf}" <<EOF
+[req]
+distinguished_name = dn
+req_extensions = req_ext
+prompt = no
+
+[dn]
+CN = ${domain}
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = ${domain}
+EOF
+
+    # Generate key and self-signed certificate with SAN
+    days="${SELF_SIGNED_CERT_DAYS:-3650}"
+
+    echo "Generating self-signed cert for ${domain} (expires in ${days} days)..."
+    openssl req \
+        -x509 \
+        -newkey ec \
+        -pkeyopt ec_paramgen_curve:P-384 \
+        -sha384 \
+        -days "${days}" \
+        -nodes \
+        -keyout "${domain_dir}/privkey.pem" \
+        -out "${domain_dir}/fullchain.pem" \
+        -config "${tmp_conf}" \
+        -extensions req_ext
+
+    # For self-signed, chain is the same as the leaf cert
+    cp "${domain_dir}/fullchain.pem" "${domain_dir}/chain.pem"
+
+    # Clean up temporary file
+    rm -f "${tmp_conf}"
+
+    echo "Self-signed cert created at: ${domain_dir}"
+}
+
+# Generate for both domains if provided
+create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
+create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"

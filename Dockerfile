@@ -26,6 +26,7 @@ RUN apk add --no-cache \
     ca-certificates \
     certbot \
     nginx \
+    openssl \
     s6-overlay \
     tzdata \
     yq-go
