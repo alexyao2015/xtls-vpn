@@ -5,7 +5,7 @@ set -eou pipefail
 
 echo "Starting openssl cert..."
 
-if [ "${SELF_SIGNED_CERT}" != "true" ]; then
+if [ "${SELF_SIGNED_CERT:-}" != "true" ]; then
     echo "Self-signed certificate is not enabled"
     exit 0
 fi
