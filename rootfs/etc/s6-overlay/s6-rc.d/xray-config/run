@@ -18,8 +18,8 @@ if [ ! -f "${XRAY_CONFIG}" ]; then
     XRAY_REALITY_SHORT_ID=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
 
     xray_keys=$(xray x25519)
-    XRAY_REALITY_PRIVATE_KEY=$(echo "${xray_keys}" | grep 'Private key' | cut -d ' ' -f3)
-    XRAY_REALITY_PUBLIC_KEY=$(echo "${xray_keys}" | grep 'Public key' | cut -d ' ' -f3)
+    XRAY_REALITY_PRIVATE_KEY=$(echo "${xray_keys}" | grep 'PrivateKey' | cut -d ' ' -f2)
+    XRAY_REALITY_PUBLIC_KEY=$(echo "${xray_keys}" | grep 'Password' | cut -d ' ' -f2)
 
     {
         echo "XRAY_UUID=${XRAY_UUID}"
