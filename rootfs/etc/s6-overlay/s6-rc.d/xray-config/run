@@ -81,7 +81,7 @@ for client in /etc/xray/clients/*.yaml; do
         '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
         "${client}" \
         /config/inbound.yaml \
-        -oj \
+        -oy \
         > "${CLIENT_CONFIG_PATH}/yaml/${client_name}.yaml"
 done
 
