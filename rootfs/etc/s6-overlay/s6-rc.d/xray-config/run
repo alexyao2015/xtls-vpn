@@ -52,6 +52,8 @@ if [ -d "${CLIENT_CONFIG_PATH}" ]; then
     rm -rf "${CLIENT_CONFIG_PATH}"
 fi
 mkdir -p "${CLIENT_CONFIG_PATH}"
+mkdir -p "${CLIENT_CONFIG_PATH}/json"
+mkdir -p "${CLIENT_CONFIG_PATH}/yaml"
 
 
 # loop over all files in data/clients
@@ -74,7 +76,13 @@ for client in /etc/xray/clients/*.yaml; do
         "${client}" \
         /config/inbound.yaml \
         -oj \
-        > "${CLIENT_CONFIG_PATH}/${client_name}.json"
+        > "${CLIENT_CONFIG_PATH}/json/${client_name}.json"
+    yq eval-all \
+        '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
+        "${client}" \
+        /config/inbound.yaml \
+        -oj \
+        > "${CLIENT_CONFIG_PATH}/yaml/${client_name}.yaml"
 done
 
 configgen /etc/xray/client_uri.yaml -o /etc/xray/client_uri.txt
