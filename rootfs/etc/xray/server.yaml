@@ -70,6 +70,8 @@ inbounds:
           - "www.bilibili.com"
           - "bilibili.com"
           - "akamaized.net"
+          - "cathaypacific.com"
+          - "www.cathaypacific.com"
         privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
         shortIds:
           # If this item exists, client shortId can be empty
