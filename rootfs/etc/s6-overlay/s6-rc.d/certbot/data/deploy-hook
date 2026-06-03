@@ -3,6 +3,14 @@
 
 set -eou pipefail
 
+# Reload nginx so it serves the renewed certificate.
 # At this point, the service may be down. Sending a signal to a dead
 # process will not do anything, so this doesn't hurt.
 s6-svc -h /run/service/nginx-xray
+
+# A renewed certificate has a new SHA-256 fingerprint, so the pinned hash baked
+# into the generated client configs and subscription (pinnedPeerCertSha256 /
+# pcs) is now stale. Re-run the xray-config generation to refresh it. This is
+# safe to re-run: it works on copies of the templates and keeps the existing
+# secrets in ${XRAY_CONFIG}.
+/etc/s6-overlay/s6-rc.d/xray-config/run

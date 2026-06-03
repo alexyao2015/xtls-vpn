@@ -17,7 +17,6 @@ outbounds:
       security: tls
       tlsSettings:
         serverName: "{{XHTTP_DOMAIN}}"
-        allowInsecure: false
         alpn:
           # h2 is already very smooth, if your CDN supports h3 and the UDP QoS
           # in your region is not severe, you can fill in "h3"

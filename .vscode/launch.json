@@ -25,7 +25,7 @@
         "REALITY_DOMAIN": "realitydomain",
         "XHTTP_DOMAIN": "xhttpdomain",
         "XRAY_XHTTP_PATH": "xhttppath",
-        "XRAY_WS_PATH": "wspath",
+        "XRAY_XHTTP_PINNED_CERT_SHA256": "0000000000000000000000000000000000000000000000000000000000000000",
         "REALITY_DOMAIN_PROXY_SITE": "realityproxy",
         "XHTTP_DOMAIN_PROXY_SITE": "xhttpproxy",
         "XRAY_UUID": "uuid",

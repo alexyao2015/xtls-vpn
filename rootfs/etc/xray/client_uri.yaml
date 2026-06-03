@@ -96,7 +96,6 @@ clients:
             security: "tls"
             tlsSettings:
               serverName: "{{XHTTP_DOMAIN}}"
-              allowInsecure: false
               alpn: "h2"
               fingerprint: "chrome"
             xhttpSettings:
@@ -109,21 +108,7 @@ clients:
         type: "xhttp"
         sni: "{{REALITY_DOMAIN}}"
         sid: "{{XRAY_REALITY_SHORT_ID}}"
-  - 6_ws_cdn:
-      protocol: "vless"
-      id: "{{XRAY_UUID}}"
-      address: "{{XHTTP_DOMAIN}}"
-      port: 443
-      params:
-        path: "{{XRAY_WS_PATH}}"
-        security: "tls"
-        alpn: "h2"
-        encryption: "none"
-        host: "{{XHTTP_DOMAIN}}"
-        fp: "chrome"
-        type: "ws"
-        sni: "{{XHTTP_DOMAIN}}"
-  - 7_xhttp:
+  - 6_xhttp:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{PUBLIC_IP}}"
@@ -138,52 +123,7 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{XHTTP_DOMAIN}}"
-        # Allow insecure to enable client to change sni at will
-        allowInsecure: "1"
-  - 8_trojan_grpc:
-      protocol: "trojan"
-      id: "{{XRAY_UUID}}"
-      address: "{{PUBLIC_IP}}"
-      port: 443
-      params:
-        mode: "gun"
-        security: "tls"
-        alpn: "h2"
-        fp: "chrome"
-        type: "grpc"
-        serviceName: "{{XRAY_TROJAN_GRPC_PATH}}"
-        sni: "{{XHTTP_DOMAIN}}"
-        # Allow insecure to enable client to change sni at will
-        allowInsecure: "1"
-  - 9_trojan_ws:
-      protocol: "trojan"
-      id: "{{XRAY_UUID}}"
-      address: "{{PUBLIC_IP}}"
-      port: 443
-      params:
-        path: "{{XRAY_TROJAN_WS_PATH}}"
-        security: "tls"
-        alpn: "h2"
-        encryption: "none"
-        host: "{{XHTTP_DOMAIN}}"
-        fp: "chrome"
-        type: "ws"
-        sni: "{{XHTTP_DOMAIN}}"
-        # Allow insecure to enable client to change sni at will
-        allowInsecure: "1"
-  - 10_ws:
-      protocol: "vless"
-      id: "{{XRAY_UUID}}"
-      address: "{{PUBLIC_IP}}"
-      port: 443
-      params:
-        path: "{{XRAY_WS_PATH}}"
-        security: "tls"
-        alpn: "h2"
-        encryption: "none"
-        host: "{{XHTTP_DOMAIN}}"
-        fp: "chrome"
-        type: "ws"
-        sni: "{{XHTTP_DOMAIN}}"
-        # Allow insecure to enable client to change sni at will
-        allowInsecure: "1"
+        # Pin the server's leaf cert (pcs = pinnedPeerCertSha256) instead of the
+        # removed allowInsecure. Lets the client use any SNI while keeping the
+        # connection verified. Auto-filled by the xray-config service.
+        pcs: "{{XRAY_XHTTP_PINNED_CERT_SHA256}}"

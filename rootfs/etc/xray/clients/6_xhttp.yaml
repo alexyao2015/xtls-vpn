@@ -1,7 +1,7 @@
 log: {}
 inbounds: []
 outbounds:
-  # Outbound 7: xhttp with spoofable domain
+  # Outbound 6: xhttp with spoofable domain
   - protocol: vless
     settings:
       vnext:
@@ -18,7 +18,10 @@ outbounds:
       tlsSettings:
         # What the outside dpi engine sees
         serverName: "{{XHTTP_DOMAIN}}"
-        allowInsecure: false
+        # Pin the exact leaf cert nginx serves for XHTTP_DOMAIN (replaces the
+        # removed allowInsecure). Auto-filled by the xray-config service from the
+        # live certificate, so the client can use any SNI while staying verified.
+        pinnedPeerCertSha256: "{{XRAY_XHTTP_PINNED_CERT_SHA256}}"
         alpn:
           # h2 is already very smooth, if your CDN supports h3 and the UDP QoS
           # in your region is not severe, you can fill in "h3"

@@ -31,9 +31,6 @@ fi
 
 {
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
-    echo "XRAY_WS_PATH=${XRAY_PATH}/ws"
-    echo "XRAY_TROJAN_GRPC_PATH=${XRAY_PATH}/trojan/grpc"
-    echo "XRAY_TROJAN_WS_PATH=${XRAY_PATH}/trojan/ws"
 } > "${XRAY_RUNTIME_CONFIG}"
 
 . "${XRAY_CONFIG}"
@@ -46,6 +43,29 @@ if [ -z "${PUBLIC_IP:+x}" ]; then
     PUBLIC_IP=$(wget -qO- api.ipify.org)
 fi
 
+# Pin the leaf certificate that nginx serves for XHTTP_DOMAIN. Clients use this
+# (pinnedPeerCertSha256 / "pcs") instead of the removed "allowInsecure": they
+# accept the exact cert regardless of SNI, but the connection stays
+# cryptographically verified. The hash is sha256 over the DER of the leaf cert,
+# which is what Xray-core compares against.
+# The certbot/openssl-cert services (a dependency of this one) guarantee the
+# cert is in place before we reach this point.
+XHTTP_CERT_FILE="${CERTBOT_LIVE_CERT_PATH}/${XHTTP_DOMAIN}/fullchain.pem"
+if [ ! -f "${XHTTP_CERT_FILE}" ]; then
+    echo "Expected XHTTP certificate not found at ${XHTTP_CERT_FILE}" >&2
+    exit 1
+fi
+XRAY_XHTTP_PINNED_CERT_SHA256=$(
+    openssl x509 -in "${XHTTP_CERT_FILE}" -outform DER \
+        | openssl dgst -sha256 \
+        | sed 's/^.*= *//'
+)
+if [ ${#XRAY_XHTTP_PINNED_CERT_SHA256} -ne 64 ]; then
+    echo "Failed to compute pinned cert SHA-256 for ${XHTTP_DOMAIN}" >&2
+    exit 1
+fi
+echo "Pinned XHTTP cert SHA-256: ${XRAY_XHTTP_PINNED_CERT_SHA256}"
+
 CLIENT_CONFIG_PATH="${GENERATED_CONFIG_PATH}/clients"
 # Remove any old generated configs
 if [ -d "${CLIENT_CONFIG_PATH}" ]; then
@@ -57,32 +77,39 @@ mkdir -p "${CLIENT_CONFIG_PATH}/yaml"
 
 
 # loop over all files in data/clients
+# Render each template into a throwaway copy instead of editing it in place, so
+# the shipped templates keep their {{placeholders}}. This keeps generation
+# idempotent: the certbot deploy-hook can re-run this script after a cert
+# renewal to refresh the pinned cert hash.
 for client in /etc/xray/clients/*.yaml; do
-    sed -i "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" "${client}"
-    sed -i "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" "${client}"
-    sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${client}"
-
-    sed -i "s|{{XRAY_UUID}}|${XRAY_UUID}|g" "${client}"
-    sed -i "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" "${client}"
-    sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${client}"
-    sed -i "s|{{XRAY_WS_PATH}}|${XRAY_WS_PATH}|g" "${client}"
-    sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${client}"
-    sed -i "s|{{XRAY_TROJAN_GRPC_PATH}}|${XRAY_TROJAN_GRPC_PATH}|g" "${client}"
-    sed -i "s|{{XRAY_TROJAN_WS_PATH}}|${XRAY_TROJAN_WS_PATH}|g" "${client}"
-
     client_name=$(basename "${client}" .yaml)
+    rendered=$(mktemp)
+    sed \
+        -e "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" \
+        -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
+        -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
+        -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
+        -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
+        -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
+        -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
+        -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
+        "${client}" \
+        > "${rendered}"
+
     yq eval-all \
         '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
-        "${client}" \
+        "${rendered}" \
         /config/inbound.yaml \
         -oj \
         > "${CLIENT_CONFIG_PATH}/json/${client_name}.json"
     yq eval-all \
         '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
-        "${client}" \
+        "${rendered}" \
         /config/inbound.yaml \
         -oy \
         > "${CLIENT_CONFIG_PATH}/yaml/${client_name}.yaml"
+
+    rm -f "${rendered}"
 done
 
 configgen /etc/xray/client_uri.yaml -o /etc/xray/client_uri.txt
