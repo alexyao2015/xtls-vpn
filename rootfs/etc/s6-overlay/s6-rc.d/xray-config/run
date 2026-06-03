@@ -33,38 +33,56 @@ fi
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
 } > "${XRAY_RUNTIME_CONFIG}"
 
+# shellcheck disable=SC1090
 . "${XRAY_CONFIG}"
+# shellcheck disable=SC1090
 . "${XRAY_RUNTIME_CONFIG}"
 
 echo "Building xray client configs..."
+
+if [ -z "${XHTTP_SELF_DOMAIN:-}" ]; then
+    echo "XHTTP_SELF_DOMAIN must be set for the xhttp_self client profile" >&2
+    exit 1
+fi
 
 # Get public IP
 if [ -z "${PUBLIC_IP:+x}" ]; then
     PUBLIC_IP=$(wget -qO- api.ipify.org)
 fi
 
-# Pin the leaf certificate that nginx serves for XHTTP_DOMAIN. Clients use this
+# Pin the leaf certificates nginx serves. Clients use these hashes
 # (pinnedPeerCertSha256 / "pcs") instead of the removed "allowInsecure": they
-# accept the exact cert regardless of SNI, but the connection stays
+# accept the exact cert regardless of trust store state, but the connection stays
 # cryptographically verified. The hash is sha256 over the DER of the leaf cert,
 # which is what Xray-core compares against.
-# The certbot/openssl-cert services (a dependency of this one) guarantee the
-# cert is in place before we reach this point.
-XHTTP_CERT_FILE="${CERTBOT_LIVE_CERT_PATH}/${XHTTP_DOMAIN}/fullchain.pem"
-if [ ! -f "${XHTTP_CERT_FILE}" ]; then
-    echo "Expected XHTTP certificate not found at ${XHTTP_CERT_FILE}" >&2
-    exit 1
-fi
-XRAY_XHTTP_PINNED_CERT_SHA256=$(
-    openssl x509 -in "${XHTTP_CERT_FILE}" -outform DER \
-        | openssl dgst -sha256 \
-        | sed 's/^.*= *//'
-)
-if [ ${#XRAY_XHTTP_PINNED_CERT_SHA256} -ne 64 ]; then
-    echo "Failed to compute pinned cert SHA-256 for ${XHTTP_DOMAIN}" >&2
-    exit 1
-fi
+# The certbot/openssl-cert services (dependencies of this one) guarantee the
+# certs are in place before we reach this point.
+compute_pinned_cert_sha256() {
+    domain="$1"
+    cert_file="${CERTBOT_LIVE_CERT_PATH}/${domain}/fullchain.pem"
+
+    if [ ! -f "${cert_file}" ]; then
+        echo "Expected certificate not found at ${cert_file}" >&2
+        exit 1
+    fi
+
+    pinned_cert_sha256=$(
+        openssl x509 -in "${cert_file}" -outform DER \
+            | openssl dgst -sha256 \
+            | sed 's/^.*= *//'
+    )
+    if [ ${#pinned_cert_sha256} -ne 64 ]; then
+        echo "Failed to compute pinned cert SHA-256 for ${domain}" >&2
+        exit 1
+    fi
+
+    echo "${pinned_cert_sha256}"
+}
+
+XRAY_XHTTP_PINNED_CERT_SHA256=$(compute_pinned_cert_sha256 "${XHTTP_DOMAIN}")
+XRAY_XHTTP_SELF_PINNED_CERT_SHA256=$(compute_pinned_cert_sha256 "${XHTTP_SELF_DOMAIN}")
 echo "Pinned XHTTP cert SHA-256: ${XRAY_XHTTP_PINNED_CERT_SHA256}"
+echo "Pinned XHTTP self cert SHA-256: ${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}"
 
 CLIENT_CONFIG_PATH="${GENERATED_CONFIG_PATH}/clients"
 # Remove any old generated configs
@@ -87,12 +105,14 @@ for client in /etc/xray/clients/*.yaml; do
     sed \
         -e "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" \
         -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
+        -e "s|{{XHTTP_SELF_DOMAIN}}|${XHTTP_SELF_DOMAIN}|g" \
         -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
         -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
         -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
         -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
         -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
         -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
+        -e "s|{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}|${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}|g" \
         "${client}" \
         > "${rendered}"
 

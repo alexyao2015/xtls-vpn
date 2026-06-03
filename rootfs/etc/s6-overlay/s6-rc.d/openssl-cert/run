@@ -5,8 +5,8 @@ set -eou pipefail
 
 echo "Starting openssl cert..."
 
-if [ "${SELF_SIGNED_CERT:-}" != "true" ]; then
-    echo "Self-signed certificate is not enabled"
+if [ "${SELF_SIGNED_CERT:-}" != "true" ] && [ -z "${XHTTP_SELF_DOMAIN:-}" ]; then
+    echo "Self-signed certificate is not enabled and XHTTP_SELF_DOMAIN is empty"
     exit 0
 fi
 
@@ -15,6 +15,11 @@ fi
 
 create_self_signed_cert_for_domain() {
     domain="$1"
+
+    if [ -z "${domain}" ]; then
+        echo "Skipping empty self-signed certificate domain"
+        return
+    fi
 
     domain_dir="${CERTBOT_LIVE_CERT_PATH}/${domain}"
     rm -rf "${domain_dir}"
@@ -63,6 +68,13 @@ EOF
     echo "Self-signed cert created at: ${domain_dir}"
 }
 
-# Generate for both domains if provided
-create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
-create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"
+# Generate the standard domains only when fully self-signed mode is enabled.
+if [ "${SELF_SIGNED_CERT:-}" = "true" ]; then
+    create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
+    create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"
+fi
+
+# The xhttp_self profile always uses an openssl-generated self-signed cert.
+if [ -n "${XHTTP_SELF_DOMAIN:-}" ]; then
+    create_self_signed_cert_for_domain "${XHTTP_SELF_DOMAIN}"
+fi

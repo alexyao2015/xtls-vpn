@@ -127,3 +127,21 @@ clients:
         # removed allowInsecure. Lets the client use any SNI while keeping the
         # connection verified. Auto-filled by the xray-config service.
         pcs: "{{XRAY_XHTTP_PINNED_CERT_SHA256}}"
+  - 7_xhttp_self:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{PUBLIC_IP}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_SELF_DOMAIN}}"
+        fp: "chrome"
+        type: "xhttp"
+        sni: "{{XHTTP_SELF_DOMAIN}}"
+        # Pin the self-signed leaf cert nginx serves for XHTTP_SELF_DOMAIN.
+        # Auto-filled by the xray-config service from the openssl-cert output.
+        pcs: "{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}"
