@@ -1,0 +1,85 @@
+log: {}
+inbounds: []
+outbounds:
+  # Outbound 8: xhttp+TLS+CDN with ECH (Encrypted Client Hello)
+  # Same CDN-fronted endpoint as 4_xhttp_cdn, but the real (inner) SNI is
+  # encrypted. The ECHConfig is fetched from DNS at runtime over DoH, so nothing
+  # secret needs to be baked in: Xray queries the HTTPS record of `serverName`
+  # (XHTTP_DOMAIN) via https://1.1.1.1/dns-query and uses the published config,
+  # honouring its TTL. This relies on the CDN in front of XHTTP_DOMAIN supporting
+  # server-side ECH and publishing a matching ECHConfig in its HTTPS DNS record
+  # (e.g. Cloudflare). Because the CDN terminates TLS with a normal CA-trusted
+  # cert, no certificate pin is used here.
+  - protocol: vless
+    settings:
+      vnext:
+        - address: "{{XHTTP_DOMAIN}}"
+          port: 443
+          users:
+            - id: "{{XRAY_UUID}}"
+              encryption: none
+              level: 0
+    tag: XHTTP+TLS+CDN+ECH
+    streamSettings:
+      network: xhttp
+      security: tls
+      tlsSettings:
+        # Outer/public SNI seen on the wire. It is also the domain whose HTTPS
+        # record is queried for the ECHConfig (because echConfigList below has no
+        # "domain+" prefix, Xray falls back to serverName as the query target).
+        serverName: "{{XHTTP_DOMAIN}}"
+        # Fetch the ECHConfig from DNS at runtime via DoH (1.1.1.1). On a failed
+        # lookup Xray installs an invalid config so the connection fails closed
+        # rather than leaking the SNI in cleartext. To force a different query
+        # domain use the "example.com+https://1.1.1.1/dns-query" form instead.
+        echConfigList: "https://1.1.1.1/dns-query"
+        alpn:
+          # h2 is already very smooth, if your CDN supports h3 and the UDP QoS
+          # in your region is not severe, you can fill in "h3". ECH itself only
+          # requires TLS 1.3, which h2 over TLS already negotiates.
+          - h2
+        fingerprint: chrome
+      xhttpSettings:
+        # xhttp must fill in host when passing through nginx
+        host: "{{XHTTP_DOMAIN}}"
+        path: "{{XRAY_XHTTP_PATH}}"
+        # It can also be written as stream-one. Other modes are not effective.
+        mode: auto
+        # The parameters in extra are already optimal by default and can be left
+        # blank
+        # extra:
+        #   # Do not send GRPC response header, default is false, that is,
+        #   # disguise as GRPC (only set on the client, only works in
+        #   # stream-up/one mode)
+        #   noGRPCHeader: false
+        #   # Each POST from the client carries 1MB of data. This only works in
+        #   # packet-up mode and cannot be larger than the value set by the
+        #   # server.
+        #   scMaxEachPostBytes: 1000000
+        #   # The minimum interval for the client to initiate a POST request is 30
+        #   # milliseconds, which only applies to packet-up mode (only set on the
+        #   # client)
+        #   scMinPostsIntervalMs: 30
+        #   xPaddingBytes: 100-1000
+        #   # Only set on the client side
+        #   xmux:
+        #     # Each H2/H3 connection can have a maximum of 16-32 proxy requests
+        #     # at the same time. If the number exceeds this, a new connection
+        #     # will be established.
+        #     maxConcurrency: 16-32
+        #     # Unlimited number of simultaneous connections
+        #     maxConnections: 0
+        #     # Each connection can be reused up to 64-128 times
+        #     cMaxReuseTimes: 64-128
+        #     # No limit on the lifetime of each connection
+        #     cMaxLifetimeMs: 0
+        #     # Each connection can carry up to 800-900 requests
+        #     hMaxRequestTimes: 800-900
+        #     # The client sends a keep-alive packet every 0 seconds, default 0,
+        #     # that is, 45 seconds for Chrome H2, or 10 seconds for quic-go H3
+        #     hKeepAlivePeriod: 0
+      # sockopt Set as needed, no need to copy
+      # sockopt:
+      #   tcpFastOpen: true
+      #   tcpMptcp: true
+      #   tcpNoDelay: true

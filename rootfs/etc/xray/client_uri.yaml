@@ -145,3 +145,23 @@ clients:
         # Pin the self-signed leaf cert nginx serves for XHTTP_SELF_DOMAIN.
         # Auto-filled by the xray-config service from the openssl-cert output.
         pcs: "{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}"
+  - 8_xhttp_cdn_ech:
+      protocol: "vless"
+      id: "{{XRAY_UUID}}"
+      address: "{{XHTTP_DOMAIN}}"
+      port: 443
+      params:
+        mode: "auto"
+        path: "{{XRAY_XHTTP_PATH}}"
+        security: "tls"
+        alpn: "h2"
+        encryption: "none"
+        host: "{{XHTTP_DOMAIN}}"
+        fp: "chrome"
+        type: "xhttp"
+        sni: "{{XHTTP_DOMAIN}}"
+        # Encrypted Client Hello. Share-link standard param "ech" maps to the
+        # echConfigList config field. This DoH form fetches the ECHConfig from
+        # DNS at runtime and queries the sni's HTTPS record (1.1.1.1 over DoH).
+        # No cert pin: the CDN terminates TLS with a normal CA-trusted cert.
+        ech: "https://1.1.1.1/dns-query"
