@@ -44,4 +44,17 @@ if ! grep -q '^XRAY_VLESS_ENC_SEED=' "${XRAY_SECRET_CONFIG}"; then
     ensure_secret XRAY_VLESS_ENC_CLIENT "$(echo "${vless_enc_keys}" | grep 'Client' | awk '{print $NF}')"
 fi
 
+# REALITY post-quantum signature keypair, ML-DSA-65 (FIPS 204). Optional add-on
+# to the mandatory X25519 REALITY keypair above (it does NOT replace it): the
+# server signs the REALITY certificate with the seed, and clients holding the
+# verify key get extra, quantum-safe authentication of the server. This blocks a
+# future quantum-assisted MITM by an attacker who already grabbed a client
+# config. The seed must differ from XRAY_REALITY_PRIVATE_KEY. `xray mldsa65`
+# prints "Seed:" (32 bytes) and "Verify:" (the 1952-byte public key).
+if ! grep -q '^XRAY_REALITY_MLDSA65_SEED=' "${XRAY_SECRET_CONFIG}"; then
+    mldsa65_keys=$(xray mldsa65)
+    ensure_secret XRAY_REALITY_MLDSA65_SEED "$(echo "${mldsa65_keys}" | grep 'Seed' | awk '{print $NF}')"
+    ensure_secret XRAY_REALITY_MLDSA65_VERIFY "$(echo "${mldsa65_keys}" | grep 'Verify' | awk '{print $NF}')"
+fi
+
 echo "xray secrets ready in ${XRAY_SECRET_CONFIG}"

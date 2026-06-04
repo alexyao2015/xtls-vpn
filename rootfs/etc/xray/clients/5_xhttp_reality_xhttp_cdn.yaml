@@ -20,6 +20,8 @@ outbounds:
         serverName: "{{REALITY_DOMAIN}}"
         fingerprint: chrome
         publicKey: "{{XRAY_REALITY_PUBLIC_KEY}}"
+        # Post-quantum ML-DSA-65 verify key (matches the server's mldsa65Seed).
+        mldsa65Verify: "{{XRAY_REALITY_MLDSA65_VERIFY}}"
         shortId: "{{XRAY_REALITY_SHORT_ID}}"
         spiderX: /
       xhttpSettings:

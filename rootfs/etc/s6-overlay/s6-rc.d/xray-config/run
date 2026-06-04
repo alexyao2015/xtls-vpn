@@ -46,6 +46,7 @@ sed -i \
     -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
     -e "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" \
     -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
+    -e "s|{{XRAY_REALITY_MLDSA65_SEED}}|${XRAY_REALITY_MLDSA65_SEED}|g" \
     -e "s|{{XRAY_VLESS_DECRYPTION}}|${XRAY_VLESS_DECRYPTION}|g" \
     "${XRAY_SERVER_CONFIG}"
 
@@ -121,6 +122,7 @@ for client in /etc/xray/clients/*.yaml; do
         -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
         -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
         -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
+        -e "s|{{XRAY_REALITY_MLDSA65_VERIFY}}|${XRAY_REALITY_MLDSA65_VERIFY}|g" \
         -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
         -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
         -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
