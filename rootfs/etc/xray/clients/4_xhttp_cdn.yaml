@@ -9,7 +9,7 @@ outbounds:
           port: 443
           users:
             - id: "{{XRAY_UUID}}"
-              encryption: none
+              encryption: "{{XRAY_VLESS_ENCRYPTION}}"
               level: 0
     tag: XHTTP+TLS+CDN
     streamSettings:

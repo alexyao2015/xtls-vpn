@@ -28,4 +28,12 @@ sed -i "s|{{XRAY_UUID}}|${XRAY_UUID}|g" "${XRAY_SERVER_CONFIG}"
 sed -i "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" "${XRAY_SERVER_CONFIG}"
 sed -i "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" "${XRAY_SERVER_CONFIG}"
 
+# VLESS Encryption ("Seed") for the XHTTP_IN inbound. The post-quantum ML-KEM-768
+# keypair is generated and persisted by the xray-config service (a dependency of
+# this one); the server holds the ML-KEM seed. "600s" is the server-side
+# resumption-ticket window (randomized to 50-100% per session); it must pair with
+# the clients' "0rtt" encryption string.
+XRAY_VLESS_DECRYPTION="mlkem768x25519plus.native.600s.${XRAY_VLESS_ENC_SEED}"
+sed -i "s|{{XRAY_VLESS_DECRYPTION}}|${XRAY_VLESS_DECRYPTION}|g" "${XRAY_SERVER_CONFIG}"
+
 exec xray run -c "${XRAY_SERVER_CONFIG}"

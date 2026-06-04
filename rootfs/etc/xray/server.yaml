@@ -326,7 +326,15 @@ inbounds:
         - id: "{{XRAY_UUID}}"
           level: 0
           email: general@vless-xhttp
-      decryption: none
+      # VLESS Encryption ("Seed"): this inbound has no XTLS flow (Vision can't run
+      # over xhttp), so the proxy-layer encryption is what migrates it off the
+      # deprecated "VLESS with no Flow, etc." It also gives an inner E2E layer the
+      # CDN can't read. Server holds the secret seed; clients carry the matching
+      # public key. Rendered by the xray service from the ML-KEM-768 seed
+      # (XRAY_VLESS_ENC_SEED).
+      # NOTE: cannot be combined with "fallbacks" (that's why the VISION+REALITY
+      # inbound above keeps "decryption": "none").
+      decryption: "{{XRAY_VLESS_DECRYPTION}}"
     streamSettings:
       network: xhttp
       xhttpSettings:

@@ -6,6 +6,8 @@ clients:
       port: 443
       params:
         security: "reality"
+        # Profile 1 targets the VISION+REALITY inbound (XTLS flow + fallbacks),
+        # which keeps "decryption":"none", so this stays "none" too.
         encryption: "none"
         pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
         headerType: "none"
@@ -24,7 +26,7 @@ clients:
         mode: "auto"
         path: "{{XRAY_XHTTP_PATH}}"
         security: "reality"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
         fp: "chrome"
         spx: "/"
@@ -41,7 +43,7 @@ clients:
         path: "{{XRAY_XHTTP_PATH}}"
         security: "tls"
         alpn: "h2"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         extra:
           downloadSettings:
             address: "{{PUBLIC_IP}}"
@@ -73,7 +75,7 @@ clients:
         path: "{{XRAY_XHTTP_PATH}}"
         security: "tls"
         alpn: "h2"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         host: "{{XHTTP_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
@@ -87,7 +89,7 @@ clients:
         mode: "auto"
         path: "{{XRAY_XHTTP_PATH}}"
         security: "reality"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         extra:
           downloadSettings:
             address: "{{XHTTP_DOMAIN}}"
@@ -118,7 +120,7 @@ clients:
         path: "{{XRAY_XHTTP_PATH}}"
         security: "tls"
         alpn: "h2"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         host: "{{XHTTP_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
@@ -137,7 +139,7 @@ clients:
         path: "{{XRAY_XHTTP_PATH}}"
         security: "tls"
         alpn: "h2"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         host: "{{XHTTP_SELF_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
@@ -155,7 +157,7 @@ clients:
         path: "{{XRAY_XHTTP_PATH}}"
         security: "tls"
         alpn: "h2"
-        encryption: "none"
+        encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         host: "{{XHTTP_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
