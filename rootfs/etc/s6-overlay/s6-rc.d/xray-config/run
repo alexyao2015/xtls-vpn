@@ -3,78 +3,53 @@
 
 set -eou pipefail
 
-# Configure all variables to be exported to be readable by configgen
+# Export everything: configgen reads {{VARS}} from the environment, and the
+# values are reused across the sed/yq rendering below.
 set -o allexport
 
-echo "Starting xray config..."
+echo "Building xray configs..."
 
 mkdir -p "${GENERATED_CONFIG_PATH}"
 
-# Check if our xray config file exists
-if [ ! -f "${XRAY_CONFIG}" ]; then
-    echo "${XRAY_CONFIG} not found, building a new config"
-
-    XRAY_UUID=$(xray uuid)
-    XRAY_REALITY_SHORT_ID=$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')
-
-    # Extract keys with awk '{print $NF}' (last field) rather than `cut -f2`:
-    # `xray x25519` prints "Password (PublicKey): <key>", so the key is the last
-    # token, not the second. $NF works for both the old and new output formats.
-    xray_keys=$(xray x25519)
-    XRAY_REALITY_PRIVATE_KEY=$(echo "${xray_keys}" | grep 'PrivateKey' | awk '{print $NF}')
-    XRAY_REALITY_PUBLIC_KEY=$(echo "${xray_keys}" | grep 'Password' | awk '{print $NF}')
-
-    # VLESS Encryption ("Seed") keypair, post-quantum ML-KEM-768. Independent
-    # from the REALITY keypair above (which must stay X25519): REALITY secures the
-    # outer transport handshake, this secures the inner VLESS proxy layer. The
-    # server uses the ML-KEM seed in "decryption", clients use the ML-KEM
-    # encapsulation key ("Client") in "encryption".
-    # `xray mlkem768` prints "Seed: <key>" / "Client: <key>" / "Hash32: <key>".
-    xray_vless_enc_keys=$(xray mlkem768)
-    XRAY_VLESS_ENC_SEED=$(echo "${xray_vless_enc_keys}" | grep 'Seed' | awk '{print $NF}')
-    XRAY_VLESS_ENC_CLIENT=$(echo "${xray_vless_enc_keys}" | grep 'Client' | awk '{print $NF}')
-
-    {
-        echo "XRAY_UUID=${XRAY_UUID}"
-        echo "XRAY_REALITY_SHORT_ID=${XRAY_REALITY_SHORT_ID}"
-        echo "XRAY_REALITY_PRIVATE_KEY=${XRAY_REALITY_PRIVATE_KEY}"
-        echo "XRAY_REALITY_PUBLIC_KEY=${XRAY_REALITY_PUBLIC_KEY}"
-        echo "XRAY_VLESS_ENC_SEED=${XRAY_VLESS_ENC_SEED}"
-        echo "XRAY_VLESS_ENC_CLIENT=${XRAY_VLESS_ENC_CLIENT}"
-    } > "${XRAY_CONFIG}"
-fi
-
+# Runtime (non-secret) config derived from env.
 {
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
 } > "${XRAY_RUNTIME_CONFIG}"
 
+# Secrets are minted and persisted by the xray-secrets oneshot (a dependency of
+# this service), so they are guaranteed to exist here.
 # shellcheck disable=SC1090
-. "${XRAY_CONFIG}"
+. "${XRAY_SECRET_CONFIG}"
 # shellcheck disable=SC1090
 . "${XRAY_RUNTIME_CONFIG}"
 
-# Migrate key files created before VLESS Encryption was introduced: generate the
-# keypair once and append it so existing deployments keep stable keys.
-if [ -z "${XRAY_VLESS_ENC_SEED:-}" ] || [ -z "${XRAY_VLESS_ENC_CLIENT:-}" ]; then
-    echo "VLESS Encryption keys not found in ${XRAY_CONFIG}, generating..."
-    xray_vless_enc_keys=$(xray mlkem768)
-    XRAY_VLESS_ENC_SEED=$(echo "${xray_vless_enc_keys}" | grep 'Seed' | awk '{print $NF}')
-    XRAY_VLESS_ENC_CLIENT=$(echo "${xray_vless_enc_keys}" | grep 'Client' | awk '{print $NF}')
-    {
-        echo "XRAY_VLESS_ENC_SEED=${XRAY_VLESS_ENC_SEED}"
-        echo "XRAY_VLESS_ENC_CLIENT=${XRAY_VLESS_ENC_CLIENT}"
-    } >> "${XRAY_CONFIG}"
-fi
-
-# Build the client-side VLESS Encryption string ("Seed"). Format:
-#   mlkem768x25519plus.<xormode>.<rtt>.<ML-KEM-768 encapsulation key>
-# Authentication is post-quantum ML-KEM-768 (the "Client" key from `xray
-# mlkem768`); the ephemeral key exchange is also ML-KEM-768 + X25519 hybrid, so
-# the whole session is post-quantum-safe. Use "0rtt" so the client resumes via
-# short-lived tickets when it can and falls back to a full handshake otherwise.
-# Must stay in sync with the server's "600s" decryption in the xray service.
+# VLESS Encryption ("Seed") strings, built from the persisted ML-KEM-768 keypair.
+# Server "decryption" uses the seed with a "600s" resumption-ticket window;
+# clients use the encapsulation key with "0rtt". The two must stay paired.
+XRAY_VLESS_DECRYPTION="mlkem768x25519plus.native.600s.${XRAY_VLESS_ENC_SEED}"
 XRAY_VLESS_ENCRYPTION="mlkem768x25519plus.native.0rtt.${XRAY_VLESS_ENC_CLIENT}"
 
+# --- Server config -------------------------------------------------------------
+# Merge server.yaml with the user-provided outbounds, then render placeholders.
+XRAY_SERVER_CONFIG="/etc/xray/server.json"
+yq eval-all \
+    '.outbounds += (select(fi == 1).outbounds) | select(fi == 0)' \
+    /etc/xray/server.yaml \
+    /config/outbound.yaml \
+    -oj \
+    > "${XRAY_SERVER_CONFIG}"
+sed -i \
+    -e "s|{{CERTBOT_LIVE_CERT_PATH}}|${CERTBOT_LIVE_CERT_PATH}|g" \
+    -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
+    -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
+    -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
+    -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
+    -e "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" \
+    -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
+    -e "s|{{XRAY_VLESS_DECRYPTION}}|${XRAY_VLESS_DECRYPTION}|g" \
+    "${XRAY_SERVER_CONFIG}"
+
+# --- Client configs ------------------------------------------------------------
 echo "Building xray client configs..."
 
 if [ -z "${XHTTP_SELF_DOMAIN:-}" ]; then

@@ -1,0 +1,47 @@
+#!/command/with-contenv sh
+# shellcheck shell=sh
+
+set -eou pipefail
+
+echo "Starting xray secrets..."
+
+mkdir -p "${GENERATED_CONFIG_PATH}"
+
+# Persisted secrets live in ${XRAY_SECRET_CONFIG}. Each secret is appended only if it is
+# not already present, which makes this oneshot fully idempotent and self-
+# migrating: adding a new secret later is a single extra line, and existing key
+# files pick it up on the next boot without regenerating the others.
+touch "${XRAY_SECRET_CONFIG}"
+
+# ensure_secret KEY VALUE
+ensure_secret() {
+    if ! grep -q "^$1=" "${XRAY_SECRET_CONFIG}"; then
+        echo "$1=$2" >> "${XRAY_SECRET_CONFIG}"
+    fi
+}
+
+ensure_secret XRAY_UUID "$(xray uuid)"
+ensure_secret XRAY_REALITY_SHORT_ID "$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+
+# Keypairs: both halves come from a single command, so guard on one half and
+# generate the pair together. `xray x25519`/`mlkem768` print the key as the last
+# whitespace-separated field (e.g. "Password (PublicKey): <key>"), so use $NF.
+
+# REALITY keypair (X25519 - required by REALITY, must not be ML-KEM).
+if ! grep -q '^XRAY_REALITY_PRIVATE_KEY=' "${XRAY_SECRET_CONFIG}"; then
+    reality_keys=$(xray x25519)
+    ensure_secret XRAY_REALITY_PRIVATE_KEY "$(echo "${reality_keys}" | grep 'PrivateKey' | awk '{print $NF}')"
+    ensure_secret XRAY_REALITY_PUBLIC_KEY "$(echo "${reality_keys}" | grep 'Password' | awk '{print $NF}')"
+fi
+
+# VLESS Encryption ("Seed") keypair, post-quantum ML-KEM-768. Independent from
+# the REALITY keypair above: REALITY secures the outer transport handshake, this
+# secures the inner VLESS proxy layer. The server uses the seed in "decryption",
+# clients use the encapsulation key ("Client") in "encryption".
+if ! grep -q '^XRAY_VLESS_ENC_SEED=' "${XRAY_SECRET_CONFIG}"; then
+    vless_enc_keys=$(xray mlkem768)
+    ensure_secret XRAY_VLESS_ENC_SEED "$(echo "${vless_enc_keys}" | grep 'Seed' | awk '{print $NF}')"
+    ensure_secret XRAY_VLESS_ENC_CLIENT "$(echo "${vless_enc_keys}" | grep 'Client' | awk '{print $NF}')"
+fi
+
+echo "xray secrets ready in ${XRAY_SECRET_CONFIG}"
