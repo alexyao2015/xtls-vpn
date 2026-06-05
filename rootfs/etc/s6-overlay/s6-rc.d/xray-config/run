@@ -52,11 +52,6 @@ render-env /etc/xray/server.yaml \
 # --- Client configs ------------------------------------------------------------
 echo "Building xray client configs..."
 
-if [ -z "${XHTTP_SELF_DOMAIN:-}" ]; then
-    echo "XHTTP_SELF_DOMAIN must be set for the xhttp_self client profile" >&2
-    exit 1
-fi
-
 # Get public IP
 if [ -z "${PUBLIC_IP:+x}" ]; then
     PUBLIC_IP=$(wget -qO- https://api.ipify.org)
