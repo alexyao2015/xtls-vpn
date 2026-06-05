@@ -14,15 +14,19 @@ echo "Building xray configs..."
 
 mkdir -p "${GENERATED_CONFIG_PATH}"
 
-# Runtime (non-secret) config derived from env.
-{
-    echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
-} > "${XRAY_RUNTIME_CONFIG}"
-
 # Secrets are minted and persisted by the xray-secrets oneshot (a dependency of
-# this service), so they are guaranteed to exist here.
+# this service), so they are guaranteed to exist here. Source them first so the
+# runtime config below can derive values from them.
 # shellcheck disable=SC1090
 . "${XRAY_SECRET_CONFIG}"
+
+
+XRAY_XFF_TOKEN="$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+{
+    echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
+    echo "XRAY_TRUSTED_XFF_HEADER=X-Forwarded-Token-${XRAY_XFF_TOKEN}"
+} > "${XRAY_RUNTIME_CONFIG}"
+
 # shellcheck disable=SC1090
 . "${XRAY_RUNTIME_CONFIG}"
 

@@ -365,6 +365,14 @@ inbounds:
         tcpcongestion: bbr
         tcpMptcp: true
         tcpNoDelay: true
+        # Only honour a client-supplied X-Forwarded-For when this secret header
+        # is present in the request. nginx stamps it on legitimate xhttp traffic
+        # (see xhttp-server-common.conf); clients reaching this inbound through
+        # the REALITY fallback cannot guess the header name and therefore cannot
+        # spoof their source IP. Without this, Xray trusts X-Forwarded-For
+        # implicitly (the "VERY INSECURE" startup warning).
+        trustedXForwardedFor:
+          - "{{XRAY_TRUSTED_XFF_HEADER}}"
     tag: XHTTP_IN
     # sniffing:
     #   enabled: true
