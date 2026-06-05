@@ -16,8 +16,13 @@ outbounds:
       network: xhttp
       security: tls
       tlsSettings:
-        serverName: "{{XHTTP_SELF_DOMAIN}}"
-        # Pin the exact self-signed leaf cert nginx serves for XHTTP_SELF_DOMAIN.
+        # nginx serves the pinned long-lived self-signed REALITY_DOMAIN leaf
+        # from its catch-all default_server for any SNI that is not REALITY_DOMAIN /
+        # XHTTP_DOMAIN, so this value is freely changeable (e.g. to a "clean" domain
+        # to dodge SNI-based blocking). Must NOT be REALITY_DOMAIN or XHTTP_DOMAIN,
+        # which route to their own (real-cert) server blocks and would fail the pin.
+        serverName: "{{REALITY_DOMAIN}}"
+        # Pin the exact self-signed leaf cert nginx's default_server serves.
         # Auto-filled by the xray-config service from the openssl-cert output.
         pinnedPeerCertSha256: "{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}"
         alpn:
@@ -26,9 +31,10 @@ outbounds:
           - h2
         fingerprint: chrome
       xhttpSettings:
-        # Once tls is unwrapped, the host is passed to nginx to select the
-        # self-signed xhttp server.
-        host: "{{XHTTP_SELF_DOMAIN}}"
+        # Host header routed to nginx after TLS. It must resolve to the catch-all
+        # default_server (i.e. anything other than REALITY_DOMAIN / XHTTP_DOMAIN),
+        # so keep it aligned with the serverName above.
+        host: "{{REALITY_DOMAIN}}"
         path: "{{XRAY_XHTTP_PATH}}"
         # It can also be written as stream-one. Other modes are not effective.
         mode: auto
