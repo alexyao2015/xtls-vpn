@@ -34,7 +34,8 @@ outbounds:
         # Host header routed to nginx after TLS. It must resolve to the catch-all
         # default_server (i.e. anything other than REALITY_DOMAIN / XHTTP_DOMAIN),
         # so keep it aligned with the serverName above.
-        host: "{{REALITY_DOMAIN}}"
+        # Must be different from REALITY_DOMAIN or XHTTP_DOMAIN, which route to their own (real-cert) server blocks and would fail the pin.
+        host: "abc{{REALITY_DOMAIN}}"
         path: "{{XRAY_XHTTP_PATH}}"
         # It can also be written as stream-one. Other modes are not effective.
         mode: auto

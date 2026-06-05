@@ -144,7 +144,8 @@ clients:
         # from its catch-all default_server for any SNI other than REALITY_DOMAIN /
         # XHTTP_DOMAIN, so this is freely changeable (e.g. to a "clean" domain to
         # dodge SNI blocking). Keep it off the two real domains.
-        host: "{{REALITY_DOMAIN}}"
+        # Must be different from REALITY_DOMAIN or XHTTP_DOMAIN, which route to their own (real-cert) server blocks and would fail the pin.
+        host: "abc{{REALITY_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
         sni: "{{REALITY_DOMAIN}}"
