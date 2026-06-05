@@ -21,10 +21,15 @@ mkdir -p "${GENERATED_CONFIG_PATH}"
 . "${XRAY_SECRET_CONFIG}"
 
 
-XRAY_XFF_TOKEN="$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+# 8 bytes (64 bits) of entropy as a 16-char hex string. Kept short on purpose:
+# the resulting header name (X-Tk-<16hex> = 21 chars) must fit within nginx's
+# fixed grpc_headers_hash bucket size of 64 bytes. A 32-hex token overflowed it
+# and nginx refused to start (could not build grpc_headers_hash). 64 bits is
+# ample for a secret-marker header name whose secrecy is the name itself.
+XRAY_XFF_TOKEN="$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 {
     echo "XRAY_XHTTP_PATH=${XRAY_PATH}/xhttp"
-    echo "XRAY_TRUSTED_XFF_HEADER=X-Forwarded-Token-${XRAY_XFF_TOKEN}"
+    echo "XRAY_TRUSTED_XFF_HEADER=X-Tk-${XRAY_XFF_TOKEN}"
 } > "${XRAY_RUNTIME_CONFIG}"
 
 # shellcheck disable=SC1090
