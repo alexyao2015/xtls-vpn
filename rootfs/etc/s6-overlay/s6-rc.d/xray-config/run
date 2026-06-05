@@ -3,10 +3,6 @@
 
 set -eou pipefail
 
-# Export everything: configgen reads {{VARS}} from the environment, and the
-# values are reused across the sed/yq rendering below.
-set -o allexport
-
 echo "Building xray configs..."
 
 mkdir -p "${GENERATED_CONFIG_PATH}"
@@ -146,4 +142,36 @@ for client in /etc/xray/clients/*.yaml; do
     rm -f "${rendered}"
 done
 
-configgen /etc/xray/client_uri.yaml -o /etc/xray/client_uri.txt
+# --- Client share links + QR codes --------------------------------------------
+# Replaces the former `configgen` binary. Render the {{placeholders}} with the
+# same sed pass used above, turn the YAML into JSON with yq, build + percent-encode
+# the share links with jq (client_uri.jq), then render a QR code per link.
+echo "Building xray client share links..."
+
+rendered_uri=$(mktemp)
+sed \
+    -e "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" \
+    -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
+    -e "s|{{XHTTP_SELF_DOMAIN}}|${XHTTP_SELF_DOMAIN}|g" \
+    -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
+    -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
+    -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
+    -e "s|{{XRAY_REALITY_MLDSA65_VERIFY}}|${XRAY_REALITY_MLDSA65_VERIFY}|g" \
+    -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
+    -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
+    -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
+    -e "s|{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}|${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}|g" \
+    -e "s|{{XRAY_VLESS_ENCRYPTION}}|${XRAY_VLESS_ENCRYPTION}|g" \
+    /etc/xray/client_uri.yaml \
+    > "${rendered_uri}"
+
+yq -o=json -I=0 "${rendered_uri}" \
+    | jq -r -f /etc/xray/client_uri.jq \
+    > /etc/xray/client_uri.txt
+rm -f "${rendered_uri}"
+
+while IFS= read -r uri; do
+    printf '%s:\n%s\n' "${uri##*#}" "${uri}"
+    qrencode -t UTF8i -m 1 "${uri}"
+    echo
+done < /etc/xray/client_uri.txt

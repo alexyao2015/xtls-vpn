@@ -1,30 +1,12 @@
-FROM rust:alpine AS configgen_builder
-
-WORKDIR /build
-
-# Install dependencies
-RUN apk add --no-cache \
-    musl-dev
-
-# Create a dummy main.rs file for caching
-RUN mkdir src \
-    && echo "fn main() {}" > src/main.rs
-
-COPY configgen/Cargo.lock configgen/Cargo.toml . 
-
-RUN cargo build --release
-
-COPY configgen/src ./src
-
-# Force cargo to detect the new main.rs file
-RUN touch src/main.rs \
-    && cargo build --release
-
 FROM alpine
 
+# Share-link generation uses yq (YAML->JSON), jq (build + percent-encode the
+# share links) and qrencode (render QR codes) instead of a custom binary.
 RUN apk add --no-cache \
     ca-certificates \
     certbot \
+    jq \
+    libqrencode-tools \
     nginx \
     openssl \
     s6-overlay \
@@ -34,8 +16,7 @@ RUN apk add --no-cache \
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-COPY --from=ghcr.io/xtls/xray-core:26.3.27 /usr/local/bin/xray /usr/bin/xray
-COPY --from=configgen_builder /build/target/release/configgen /usr/bin/configgen
+COPY --from=ghcr.io/xtls/xray-core:26.6.1 /usr/local/bin/xray /usr/bin/xray
 
 COPY rootfs /
 
