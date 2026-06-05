@@ -27,6 +27,7 @@ ENV \
 
 ENV \
     CERTBOT_CONFIG_PATH="${GENERATED_CONFIG_PATH}/letsencrypt" \
+    XRAY_PREVIOUS_SECRET_CONFIG="${GENERATED_CONFIG_PATH}/xray_config.env" \
     XRAY_SECRET_CONFIG="${GENERATED_CONFIG_PATH}/xray_secret_config.env" \
     XRAY_RUNTIME_CONFIG="${GENERATED_CONFIG_PATH}/xray_runtime_config.env"
 

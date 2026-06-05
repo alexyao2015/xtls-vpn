@@ -7,6 +7,12 @@ echo "Starting xray secrets..."
 
 mkdir -p "${GENERATED_CONFIG_PATH}"
 
+if [ -f "${XRAY_PREVIOUS_SECRET_CONFIG}" ] && [ ! -f "${XRAY_SECRET_CONFIG}" ]; then
+    echo "Migrating legacy xray config to new secrets format..."
+    mv "${XRAY_PREVIOUS_SECRET_CONFIG}" "${XRAY_SECRET_CONFIG}"
+    echo "Legacy xray config migrated to ${XRAY_SECRET_CONFIG}"
+fi
+
 # Persisted secrets live in ${XRAY_SECRET_CONFIG}. Each secret is appended only if it is
 # not already present, which makes this oneshot fully idempotent and self-
 # migrating: adding a new secret later is a single extra line, and existing key
