@@ -3,6 +3,13 @@
 
 set -eou pipefail
 
+# render-env reads {{VAR}} placeholders from the process environment, so every
+# value we substitute (including the runtime-computed ones below: PUBLIC_IP, the
+# VLESS strings, the pinned cert hashes, and everything sourced from the secret
+# and runtime config files) must be exported. allexport does that for all
+# assignments that follow.
+set -o allexport
+
 echo "Building xray configs..."
 
 mkdir -p "${GENERATED_CONFIG_PATH}"
@@ -22,27 +29,25 @@ mkdir -p "${GENERATED_CONFIG_PATH}"
 # VLESS Encryption ("Seed") strings, built from the persisted ML-KEM-768 keypair.
 # Server "decryption" uses the seed with a "600s" resumption-ticket window;
 # clients use the encapsulation key with "0rtt". The two must stay paired.
+# They are consumed by render-env via the (allexport'd) environment rather than
+# referenced directly here, hence the SC2034 suppression.
+# shellcheck disable=SC2034
 XRAY_VLESS_DECRYPTION="mlkem768x25519plus.native.600s.${XRAY_VLESS_ENC_SEED}"
+# shellcheck disable=SC2034
 XRAY_VLESS_ENCRYPTION="mlkem768x25519plus.native.0rtt.${XRAY_VLESS_ENC_CLIENT}"
 
 # --- Server config -------------------------------------------------------------
-# Merge server.yaml with the user-provided outbounds, then render placeholders.
+# Render the {{VAR}} placeholders in server.yaml from the environment, then merge
+# the result (read from stdin as the first document) with the user-provided
+# outbounds.
 XRAY_SERVER_CONFIG="/etc/xray/server.json"
-yq eval-all \
-    '.outbounds += (select(fi == 1).outbounds) | select(fi == 0)' \
-    /etc/xray/server.yaml \
-    /config/outbound.yaml \
-    -oj \
+render-env /etc/xray/server.yaml \
+    | yq eval-all \
+        '.outbounds += (select(fi == 1).outbounds) | select(fi == 0)' \
+        - \
+        /config/outbound.yaml \
+        -o=json \
     > "${XRAY_SERVER_CONFIG}"
-sed -i \
-    -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
-    -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
-    -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
-    -e "s|{{XRAY_REALITY_PRIVATE_KEY}}|${XRAY_REALITY_PRIVATE_KEY}|g" \
-    -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
-    -e "s|{{XRAY_REALITY_MLDSA65_SEED}}|${XRAY_REALITY_MLDSA65_SEED}|g" \
-    -e "s|{{XRAY_VLESS_DECRYPTION}}|${XRAY_VLESS_DECRYPTION}|g" \
-    "${XRAY_SERVER_CONFIG}"
 
 # --- Client configs ------------------------------------------------------------
 echo "Building xray client configs..."
@@ -103,72 +108,40 @@ mkdir -p "${CLIENT_CONFIG_PATH}/yaml"
 
 
 # loop over all files in data/clients
-# Render each template into a throwaway copy instead of editing it in place, so
-# the shipped templates keep their {{placeholders}}. This keeps generation
-# idempotent: the certbot deploy-hook can re-run this script after a cert
-# renewal to refresh the pinned cert hash.
+# render-env reads each template and writes to a throwaway copy without touching
+# the source file, so the shipped templates keep their {{placeholders}}. This
+# keeps generation idempotent: the certbot deploy-hook can re-run this script
+# after a cert renewal to refresh the pinned cert hash. The rendered copy is
+# reused for both the JSON and YAML outputs.
 for client in /etc/xray/clients/*.yaml; do
     client_name=$(basename "${client}" .yaml)
     rendered=$(mktemp)
-    sed \
-        -e "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" \
-        -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
-        -e "s|{{XHTTP_SELF_DOMAIN}}|${XHTTP_SELF_DOMAIN}|g" \
-        -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
-        -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
-        -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
-        -e "s|{{XRAY_REALITY_MLDSA65_VERIFY}}|${XRAY_REALITY_MLDSA65_VERIFY}|g" \
-        -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
-        -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
-        -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
-        -e "s|{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}|${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}|g" \
-        -e "s|{{XRAY_VLESS_ENCRYPTION}}|${XRAY_VLESS_ENCRYPTION}|g" \
-        "${client}" \
-        > "${rendered}"
-
+    render-env "${client}" > "${rendered}"
     yq eval-all \
         '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
         "${rendered}" \
         /config/inbound.yaml \
-        -oj \
+        -o=json \
         > "${CLIENT_CONFIG_PATH}/json/${client_name}.json"
     yq eval-all \
         '.inbounds += (select(fi == 1).inbounds) | select(fi == 0)' \
         "${rendered}" \
         /config/inbound.yaml \
-        -oy \
+        -o=yaml \
         > "${CLIENT_CONFIG_PATH}/yaml/${client_name}.yaml"
-
     rm -f "${rendered}"
 done
 
 # --- Client share links + QR codes --------------------------------------------
-# Replaces the former `configgen` binary. Render the {{placeholders}} with the
-# same sed pass used above, turn the YAML into JSON with yq, build + percent-encode
-# the share links with jq (client_uri.jq), then render a QR code per link.
+# Replaces the former `configgen` binary. Render the {{placeholders}} with
+# render-env, convert to compact JSON with yq, build + percent-encode the share
+# links with render-client-uri, then render a QR code per link.
 echo "Building xray client share links..."
 
-rendered_uri=$(mktemp)
-sed \
-    -e "s|{{PUBLIC_IP}}|${PUBLIC_IP}|g" \
-    -e "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" \
-    -e "s|{{XHTTP_SELF_DOMAIN}}|${XHTTP_SELF_DOMAIN}|g" \
-    -e "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" \
-    -e "s|{{XRAY_UUID}}|${XRAY_UUID}|g" \
-    -e "s|{{XRAY_REALITY_PUBLIC_KEY}}|${XRAY_REALITY_PUBLIC_KEY}|g" \
-    -e "s|{{XRAY_REALITY_MLDSA65_VERIFY}}|${XRAY_REALITY_MLDSA65_VERIFY}|g" \
-    -e "s|{{XRAY_REALITY_SHORT_ID}}|${XRAY_REALITY_SHORT_ID}|g" \
-    -e "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" \
-    -e "s|{{XRAY_XHTTP_PINNED_CERT_SHA256}}|${XRAY_XHTTP_PINNED_CERT_SHA256}|g" \
-    -e "s|{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}|${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}|g" \
-    -e "s|{{XRAY_VLESS_ENCRYPTION}}|${XRAY_VLESS_ENCRYPTION}|g" \
-    /etc/xray/client_uri.yaml \
-    > "${rendered_uri}"
-
-yq -o=json -I=0 "${rendered_uri}" \
+render-env /etc/xray/client_uri.yaml \
+    | yq -o=json -I=0 \
     | jq -r -f /etc/xray/client_uri.jq \
     > /etc/xray/client_uri.txt
-rm -f "${rendered_uri}"
 
 while IFS= read -r uri; do
     printf '%s:\n%s\n' "${uri##*#}" "${uri}"

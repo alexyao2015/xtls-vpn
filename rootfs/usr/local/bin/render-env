@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""render-env — substitute {{VAR}} placeholders with environment variables.
+
+Reads a file (path passed as the only argument, or "-"/omitted for stdin),
+replaces every {{NAME}} placeholder with the value of the matching environment
+variable, and writes the result to stdout.
+
+Design notes:
+- Format-agnostic: it works on raw text, so YAML, JSON, nginx configs, anything.
+  The {{VAR}} delimiter collides with nothing -- crucially not with the
+  $variables nginx and the shell use natively, which pass through untouched.
+- Auto-discovery: every {{VAR}} is found by the regex, so adding a placeholder
+  to a template needs no change here or in the calling script.
+- Fail loud: an unset or empty variable is a hard error (exit 1), so callers
+  under `set -e` abort instead of shipping a half-rendered config.
+- Safe values: re.sub replaces via a function, so the value is inserted
+  literally -- characters like & \\ / | can't corrupt the output the way they
+  can on sed's replacement side.
+- Idempotent: text with no {{...}} left is passed through unchanged.
+
+Variables are read from the process environment, so callers must export them
+(e.g. `set -o allexport`) before invoking this utility.
+"""
+
+import os
+import re
+import sys
+from typing import NoReturn
+
+# {{NAME}} where NAME is a shell-style identifier (a letter or underscore
+# followed by letters, digits or underscores). Anything else is left as-is.
+PLACEHOLDER = re.compile(r"\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}")
+
+
+def fail(message: str) -> NoReturn:
+    """Print an error to stderr and abort with a non-zero exit code."""
+    print(f"render-env: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def substitute(match: re.Match[str]) -> str:
+    """Resolve a matched {{NAME}} to its env value, refusing unset/empty."""
+    name = match.group(1)
+    if name not in os.environ:
+        fail(f"variable {name} is not set")
+    value = os.environ[name]
+    if not value:
+        fail(f"variable {name} is empty")
+    return value
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    if len(args) > 1:
+        fail("usage: render-env [FILE]")
+
+    # Read the whole input (a file argument, or stdin when omitted or "-") and
+    # rewrite every placeholder in a single pass.
+    if args and args[0] != "-":
+        with open(args[0], encoding="utf-8") as handle:
+            text = handle.read()
+    else:
+        text = sys.stdin.read()
+
+    sys.stdout.write(PLACEHOLDER.sub(substitute, text))
+
+
+if __name__ == "__main__":
+    main()

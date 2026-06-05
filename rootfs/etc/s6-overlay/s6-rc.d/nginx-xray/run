@@ -3,6 +3,10 @@
 
 set -eou pipefail
 
+# render-env reads {{VAR}} placeholders from the environment; allexport makes the
+# values sourced from XRAY_RUNTIME_CONFIG (e.g. XRAY_XHTTP_PATH) visible to it.
+set -o allexport
+
 echo "Starting nginx-xray..."
 
 # Load all xray variables from xray-config
@@ -11,17 +15,15 @@ echo "Starting nginx-xray..."
 
 NGINX_CONFIG="${PWD}/data/nginx.conf"
 
+# Render the {{VAR}} placeholders in each nginx config in place. render-env
+# discovers every placeholder automatically and aborts if any referenced
+# variable is unset or empty; nginx's own $variables are left untouched. Writing
+# via a temp file + cat keeps the original file's permissions and inode.
 for nginx_template in "${PWD}"/data/*.conf; do
-    sed -i "s|{{REALITY_DOMAIN}}|${REALITY_DOMAIN}|g" "${nginx_template}"
-    sed -i "s|{{XHTTP_DOMAIN}}|${XHTTP_DOMAIN}|g" "${nginx_template}"
-    sed -i "s|{{XHTTP_SELF_DOMAIN}}|${XHTTP_SELF_DOMAIN}|g" "${nginx_template}"
-    sed -i "s|{{XRAY_PATH}}|${XRAY_PATH}|g" "${nginx_template}"
-    sed -i "s|{{XRAY_XHTTP_PATH}}|${XRAY_XHTTP_PATH}|g" "${nginx_template}"
-
-    sed -i "s|{{REALITY_DOMAIN_PROXY_SITE}}|${REALITY_DOMAIN_PROXY_SITE}|g" "${nginx_template}"
-    sed -i "s|{{XHTTP_DOMAIN_PROXY_SITE}}|${XHTTP_DOMAIN_PROXY_SITE}|g" "${nginx_template}"
-
-    sed -i "s|{{CERTBOT_LIVE_CERT_PATH}}|${CERTBOT_LIVE_CERT_PATH}|g" "${nginx_template}"
+    rendered=$(mktemp)
+    render-env "${nginx_template}" > "${rendered}"
+    cat "${rendered}" > "${nginx_template}"
+    rm -f "${rendered}"
 done
 
 exec s6-notifyoncheck -n 0 \
