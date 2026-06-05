@@ -10,9 +10,6 @@ clients:
         # which keeps "decryption":"none", so this stays "none" too.
         encryption: "none"
         pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
-        # Post-quantum ML-DSA-65 verify key (share-link standard param "pqv" ->
-        # mldsa65Verify). Old clients that don't recognise it still connect.
-        pqv: "{{XRAY_REALITY_MLDSA65_VERIFY}}"
         headerType: "none"
         fp: "chrome"
         spx: "/"
@@ -31,8 +28,6 @@ clients:
         security: "reality"
         encryption: "{{XRAY_VLESS_ENCRYPTION}}"
         pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
-        # Post-quantum ML-DSA-65 verify key ("pqv" -> mldsa65Verify).
-        pqv: "{{XRAY_REALITY_MLDSA65_VERIFY}}"
         fp: "chrome"
         spx: "/"
         type: "xhttp"
@@ -60,7 +55,6 @@ clients:
               serverName: "{{REALITY_DOMAIN}}"
               fingerprint: "chrome"
               publicKey: "{{XRAY_REALITY_PUBLIC_KEY}}"
-              mldsa65Verify: "{{XRAY_REALITY_MLDSA65_VERIFY}}"
               shortId: "{{XRAY_REALITY_SHORT_ID}}"
               spiderX: "/"
             xhttpSettings:
@@ -111,8 +105,6 @@ clients:
               path: "{{XRAY_XHTTP_PATH}}"
               mode: "auto"
         pbk: "{{XRAY_REALITY_PUBLIC_KEY}}"
-        # Post-quantum ML-DSA-65 verify key ("pqv" -> mldsa65Verify).
-        pqv: "{{XRAY_REALITY_MLDSA65_VERIFY}}"
         fp: "chrome"
         spx: "/"
         type: "xhttp"

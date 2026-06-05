@@ -300,12 +300,6 @@ inbounds:
           - "www.w3.org"
           - "www.yahoo.com"
         privateKey: "{{XRAY_REALITY_PRIVATE_KEY}}"
-        # Post-quantum ML-DSA-65 signature (FIPS 204). Optional add-on to the
-        # mandatory X25519 privateKey above: signs the REALITY certificate so
-        # clients carrying "mldsa65Verify" / "pqv" get extra, quantum-safe server
-        # authentication. Must differ from privateKey; clients without the verify
-        # key are unaffected and still connect.
-        mldsa65Seed: "{{XRAY_REALITY_MLDSA65_SEED}}"
         shortIds:
           # If this item exists, client shortId can be empty
           - ""
