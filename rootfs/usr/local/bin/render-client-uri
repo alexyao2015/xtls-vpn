@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""client-uri — build VLESS share links from client_uri.yaml.
+
+Reads the rendered client_uri document as JSON on stdin (produced upstream by
+`render-env ... | yq -o=json`) and writes one `vless://` share link per line to
+stdout. Replaces the former `client_uri.jq` filter (and the `configgen` binary
+before it): yq parses the YAML, this script assembles + percent-encodes the
+links, and qrencode renders the QR codes from the output.
+
+Each client is a single-key map: { "<name>": { protocol, id, address, port, params } }
+
+Encoding notes:
+- The id, every query param, and the fragment (client name) are percent-encoded
+  per RFC 3986. urllib.parse.urlencode builds the query with quote (safe="") as
+  the encoder, so only A-Za-z0-9-_.~ survive unescaped -- spaces become %20.
+- The host/address is left as-is.
+- A scalar param is stringified plainly; a nested map/array (e.g. the `extra`
+  block) is emitted as compact JSON before encoding.
+"""
+
+import json
+import sys
+from urllib.parse import quote, urlencode
+
+
+def param_to_str(value: object) -> str:
+    """Stringify a param value: raw text for strings, compact JSON otherwise."""
+    if isinstance(value, str):
+        return value
+    # Numbers, booleans, null and nested maps/arrays (e.g. `extra`) become JSON.
+    # json.dumps defaults to separators=(", ", ": "), adding a space after every
+    # comma and colon; separators=(",", ":") drops those spaces for compact output
+    # (no stray %20s once the value is percent-encoded into the query string).
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
+def build_uri(name: str, client: dict) -> str:
+    """Assemble vless://<id>@<host>:<port>?<query>#<name> for one client."""
+    # Stringify each param value (nested maps become compact JSON) before the
+    # whole map is percent-encoded into a k=v&k=v query string.
+    params = {}
+    for key, value in client.get("params", {}).items():
+        params[key] = param_to_str(value)
+    query = urlencode(params, safe="", quote_via=quote)
+
+    protocol = client["protocol"]
+    user = quote(str(client["id"]), safe="")
+    host = client["address"]
+    port = client["port"]
+    fragment = quote(name, safe="")
+    return f"{protocol}://{user}@{host}:{port}?{query}#{fragment}"
+
+
+def main() -> None:
+    document = json.load(sys.stdin)
+    for entry in document["clients"]:
+        # Each entry is a single-key { "<name>": {...} } map, so this inner loop
+        # runs exactly once and unpacks the name alongside its client config.
+        for name, client in entry.items():
+            print(build_uri(name, client))
+
+
+if __name__ == "__main__":
+    main()

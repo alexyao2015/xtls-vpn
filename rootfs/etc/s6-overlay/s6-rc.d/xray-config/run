@@ -140,10 +140,11 @@ echo "Building xray client share links..."
 
 render-env /etc/xray/client_uri.yaml \
     | yq -o=json -I=0 \
-    | jq -r -f /etc/xray/client_uri.jq \
+    | render-client-uri \
     > /etc/xray/client_uri.txt
 
 while IFS= read -r uri; do
+    # print the uri in the format of Name:\n uri\n
     printf '%s:\n%s\n' "${uri##*#}" "${uri}"
     qrencode -t UTF8i -m 1 "${uri}"
     echo
