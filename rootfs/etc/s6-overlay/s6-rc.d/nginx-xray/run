@@ -17,13 +17,10 @@ NGINX_CONFIG="${PWD}/data/nginx.conf"
 
 # Render the {{VAR}} placeholders in each nginx config in place. render-env
 # discovers every placeholder automatically and aborts if any referenced
-# variable is unset or empty; nginx's own $variables are left untouched. Writing
-# via a temp file + cat keeps the original file's permissions and inode.
+# variable is unset or empty; nginx's own $variables are left untouched.
+# --in-place keeps each file's permissions and inode.
 for nginx_template in "${PWD}"/data/*.conf; do
-    rendered=$(mktemp)
-    render-env "${nginx_template}" > "${rendered}"
-    cat "${rendered}" > "${nginx_template}"
-    rm -f "${rendered}"
+    render-env --in-place "${nginx_template}"
 done
 
 exec s6-notifyoncheck -n 0 \

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """render-env — substitute {{VAR}} placeholders with environment variables.
 
-Reads a file (path passed as the only argument, or "-"/omitted for stdin),
-replaces every {{NAME}} placeholder with the value of the matching environment
-variable, and writes the result to stdout.
+Reads the file given as the only argument, replaces every {{NAME}} placeholder
+with the value of the matching environment variable, and writes the result to
+stdout (or back to the file itself with --in-place).
 
 Design notes:
 - Format-agnostic: it works on raw text, so YAML, JSON, nginx configs, anything.
@@ -17,6 +17,13 @@ Design notes:
   literally -- characters like & \\ / | can't corrupt the output the way they
   can on sed's replacement side.
 - Idempotent: text with no {{...}} left is passed through unchanged.
+
+Output:
+- By default the result goes to stdout.
+- `-i/--in-place` rewrites the input file itself. The whole file is read before
+  it is rewritten, so this is safe and the original inode + permission bits are
+  kept (the file is truncated and rewritten, not recreated) -- which is why
+  callers don't need a `mktemp` + `cat` dance to render a config in place.
 
 Variables are read from the process environment, so callers must export them
 (e.g. `set -o allexport`) before invoking this utility.
@@ -51,18 +58,28 @@ def substitute(match: re.Match[str]) -> str:
 
 def main() -> None:
     args = sys.argv[1:]
-    if len(args) > 1:
-        fail("usage: render-env [FILE]")
+    in_place = False
+    if args and args[0] in ("-i", "--in-place"):
+        in_place = True
+        args = args[1:]
+    if len(args) != 1:
+        fail("usage: render-env [-i|--in-place] FILE")
+    path = args[0]
 
-    # Read the whole input (a file argument, or stdin when omitted or "-") and
-    # rewrite every placeholder in a single pass.
-    if args and args[0] != "-":
-        with open(args[0], encoding="utf-8") as handle:
-            text = handle.read()
+    # Read the whole file and rewrite every placeholder in a single pass.
+    # Reading fully up front is what makes the in-place rewrite below safe.
+    with open(path, encoding="utf-8") as handle:
+        text = handle.read()
+
+    rendered = PLACEHOLDER.sub(substitute, text)
+
+    if in_place:
+        # Opening the existing file with "w" truncates and rewrites it, keeping
+        # the original inode and permission bits -- no temp file + cat needed.
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(rendered)
     else:
-        text = sys.stdin.read()
-
-    sys.stdout.write(PLACEHOLDER.sub(substitute, text))
+        sys.stdout.write(rendered)
 
 
 if __name__ == "__main__":

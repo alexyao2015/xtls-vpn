@@ -9,11 +9,8 @@ NGINX_CONFIG="${PWD}/data/nginx.conf"
 
 # Render the {{VAR}} placeholders in place (CERTBOT_CONFIG_PATH_WWW is exported
 # by the container environment). render-env aborts if a referenced variable is
-# unset or empty; writing via a temp file + cat preserves permissions and inode.
-rendered=$(mktemp)
-render-env "${NGINX_CONFIG}" > "${rendered}"
-cat "${rendered}" > "${NGINX_CONFIG}"
-rm -f "${rendered}"
+# unset or empty; --in-place keeps the file's permissions and inode.
+render-env --in-place "${NGINX_CONFIG}"
 
 exec s6-notifyoncheck -n 0 \
     nginx -g 'daemon off;' -c "${NGINX_CONFIG}"

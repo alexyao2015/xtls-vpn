@@ -1,14 +1,12 @@
 FROM alpine
 
-# Share-link generation uses yq (YAML->JSON), jq (build + percent-encode the
-# share links) and qrencode (render QR codes) instead of a custom binary.
 RUN apk add --no-cache \
     ca-certificates \
     certbot \
-    jq \
     libqrencode-tools \
     nginx \
     openssl \
+    python3 \
     s6-overlay \
     tzdata \
     yq-go
