@@ -13,13 +13,18 @@ echo "Starting nginx-xray..."
 # shellcheck disable=SC1090
 . "${XRAY_RUNTIME_CONFIG}"
 
-NGINX_CONFIG="${PWD}/data/nginx.conf"
+# s6 runs this service from the compiled servicedir, so PWD is not the source
+# tree under /etc/s6-overlay. We render (and include) the configs from here, so
+# nginx.conf's `include {{NGINX_DATA_DIR}}/...` must resolve to this same rendered
+# copy rather than the untouched source file.
+NGINX_DATA_DIR="${PWD}/data"
+NGINX_CONFIG="${NGINX_DATA_DIR}/nginx.conf"
 
 # Render the {{VAR}} placeholders in each nginx config in place. render-env
 # discovers every placeholder automatically and aborts if any referenced
 # variable is unset or empty; nginx's own $variables are left untouched.
 # --in-place keeps each file's permissions and inode.
-for nginx_template in "${PWD}"/data/*.conf; do
+for nginx_template in "${NGINX_DATA_DIR}"/*.conf; do
     render-env --in-place "${nginx_template}"
 done
 
