@@ -136,15 +136,14 @@ clients:
         security: "tls"
         alpn: "h2"
         encryption: "{{XRAY_VLESS_ENCRYPTION}}"
-        # nginx serves the pinned long-lived self-signed REALITY_DOMAIN leaf
+        # nginx serves the pinned long-lived self-signed XHTTP_SELF_DOMAIN leaf
         # from its catch-all default_server for any SNI other than REALITY_DOMAIN /
         # XHTTP_DOMAIN, so this is freely changeable (e.g. to a "clean" domain to
         # dodge SNI blocking). Keep it off the two real domains.
-        # Must be different from REALITY_DOMAIN or XHTTP_DOMAIN, which route to their own (real-cert) server blocks and would fail the pin.
-        host: "abc{{REALITY_DOMAIN}}"
+        host: "{{XHTTP_SELF_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
-        sni: "{{REALITY_DOMAIN}}"
+        sni: "{{XHTTP_SELF_DOMAIN}}"
         # Pin the self-signed leaf cert nginx's default_server serves.
         # Auto-filled by the xray-config service from the openssl-cert output.
         pcs: "{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}"

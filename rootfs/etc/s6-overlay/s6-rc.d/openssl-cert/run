@@ -64,11 +64,15 @@ EOF
 }
 
 # Generate the standard domains only when fully self-signed mode is enabled.
-# The xhttp_self profile no longer needs a dedicated cert: nginx's catch-all
-# default_server reuses the REALITY_DOMAIN leaf at ${CERTBOT_LIVE_CERT_PATH}/
-# ${REALITY_DOMAIN} (self-signed here in self-signed mode, certbot-issued in
-# production), and the client pins whatever that leaf is.
 if [ "${SELF_SIGNED_CERT:-}" = "true" ]; then
     create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
     create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"
 fi
+
+# The xhttp_self profile always uses a long-lived openssl self-signed cert, stored
+# under the standard CERTBOT_LIVE_CERT_PATH/<domain> layout. XHTTP_SELF_DOMAIN is
+# its own domain (distinct from REALITY_DOMAIN/XHTTP_DOMAIN, and never requested
+# from certbot), so this leaf never collides with the certbot-issued certs and
+# stays stable across renewals. nginx's catch-all default_server serves it and the
+# client pins this exact leaf.
+create_self_signed_cert_for_domain "${XHTTP_SELF_DOMAIN}"
