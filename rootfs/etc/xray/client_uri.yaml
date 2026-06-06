@@ -125,10 +125,6 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{XHTTP_DOMAIN}}"
-        # Pin the server's leaf cert (pcs = pinnedPeerCertSha256) instead of the
-        # removed allowInsecure. Lets the client use any SNI while keeping the
-        # connection verified. Auto-filled by the xray-config service.
-        pcs: "{{XRAY_XHTTP_PINNED_CERT_SHA256}}"
   - 7_xhttp_self:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
