@@ -96,11 +96,7 @@ compute_pinned_cert_sha256() {
 }
 
 XRAY_XHTTP_PINNED_CERT_SHA256=$(compute_pinned_cert_sha256 "${CERTBOT_LIVE_CERT_PATH}/${XHTTP_DOMAIN}/fullchain.pem")
-# nginx's catch-all default_server (the xhttp_self profile) serves the dedicated
-# long-lived self-signed XHTTP_SELF_DOMAIN leaf, so pin that one.
-XRAY_XHTTP_SELF_PINNED_CERT_SHA256=$(compute_pinned_cert_sha256 "${CERTBOT_LIVE_CERT_PATH}/${XHTTP_SELF_DOMAIN}/fullchain.pem")
 echo "Pinned XHTTP cert SHA-256: ${XRAY_XHTTP_PINNED_CERT_SHA256}"
-echo "Pinned XHTTP self cert SHA-256: ${XRAY_XHTTP_SELF_PINNED_CERT_SHA256}"
 
 CLIENT_CONFIG_PATH="${GENERATED_CONFIG_PATH}/clients"
 # Remove any old generated configs

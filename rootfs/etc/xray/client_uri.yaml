@@ -125,7 +125,7 @@ clients:
         fp: "chrome"
         type: "xhttp"
         sni: "{{XHTTP_DOMAIN}}"
-  - 7_xhttp_self:
+  - 7_xhttp_sni_spoof:
       protocol: "vless"
       id: "{{XRAY_UUID}}"
       address: "{{PUBLIC_IP}}"
@@ -136,17 +136,11 @@ clients:
         security: "tls"
         alpn: "h2"
         encryption: "{{XRAY_VLESS_ENCRYPTION}}"
-        # nginx serves the pinned long-lived self-signed XHTTP_SELF_DOMAIN leaf
-        # from its catch-all default_server for any SNI other than REALITY_DOMAIN /
-        # XHTTP_DOMAIN, so this is freely changeable (e.g. to a "clean" domain to
-        # dodge SNI blocking). Keep it off the two real domains.
-        host: "{{XHTTP_SELF_DOMAIN}}"
+        host: "{{XHTTP_DOMAIN}}"
         fp: "chrome"
         type: "xhttp"
-        sni: "{{XHTTP_SELF_DOMAIN}}"
-        # Pin the self-signed leaf cert nginx's default_server serves.
-        # Auto-filled by the xray-config service from the openssl-cert output.
-        pcs: "{{XRAY_XHTTP_SELF_PINNED_CERT_SHA256}}"
+        sni: "{{XHTTP_DOMAIN}}"
+        vcn: "{{XHTTP_DOMAIN}}"
   - 8_xhttp_cdn_ech:
       protocol: "vless"
       id: "{{XRAY_UUID}}"

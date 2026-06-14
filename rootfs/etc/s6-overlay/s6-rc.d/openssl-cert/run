@@ -5,6 +5,12 @@ set -eou pipefail
 
 echo "Starting openssl cert..."
 
+# Generate the standard domains only when fully self-signed mode is enabled.
+if [ "${SELF_SIGNED_CERT:-}" != "true" ]; then
+    echo "Skipping self-signed cert generation since SELF_SIGNED_CERT is not set to 'true'"
+    exit 0
+fi
+
 # Create certs in the same structure as certbot would:
 # ${CERTBOT_LIVE_CERT_PATH}/${DOMAIN}/{fullchain.pem,chain.pem,privkey.pem}
 
@@ -63,16 +69,5 @@ EOF
     echo "Self-signed cert created at: ${domain_dir}"
 }
 
-# Generate the standard domains only when fully self-signed mode is enabled.
-if [ "${SELF_SIGNED_CERT:-}" = "true" ]; then
-    create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
-    create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"
-fi
-
-# The xhttp_self profile always uses a long-lived openssl self-signed cert, stored
-# under the standard CERTBOT_LIVE_CERT_PATH/<domain> layout. XHTTP_SELF_DOMAIN is
-# its own domain (distinct from REALITY_DOMAIN/XHTTP_DOMAIN, and never requested
-# from certbot), so this leaf never collides with the certbot-issued certs and
-# stays stable across renewals. nginx's catch-all default_server serves it and the
-# client pins this exact leaf.
-create_self_signed_cert_for_domain "${XHTTP_SELF_DOMAIN}"
+create_self_signed_cert_for_domain "${REALITY_DOMAIN:-}"
+create_self_signed_cert_for_domain "${XHTTP_DOMAIN:-}"
