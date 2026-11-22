@@ -20,6 +20,25 @@ mkdir -p "${GENERATED_CONFIG_PATH}"
 # shellcheck disable=SC1090
 . "${XRAY_SECRET_CONFIG}"
 
+# Get public IP
+if [ -z "${PUBLIC_IP:+x}" ]; then
+    PUBLIC_IP=$(wget -qO- https://api.ipify.org)
+    [ -n "${PUBLIC_IP}" ] || { echo "Failed to determine PUBLIC_IP" >&2; exit 1; }
+fi
+
+REALITY_SERVER_NAMES=${REALITY_SERVER_NAMES:-${REALITY_DOMAIN},${XHTTP_DOMAIN}}
+REALITY_SERVER_NAMES=$(yq -n -o=json -I=0 \
+    'strenv(REALITY_SERVER_NAMES) | split(",") | map(trim | select(. != ""))')
+REALITY_FORWARD_ALL_SNI=${REALITY_FORWARD_ALL_SNI:-false}
+case "${REALITY_FORWARD_ALL_SNI}" in
+    true|false) ;;
+    *) echo "REALITY_FORWARD_ALL_SNI must be true or false" >&2; exit 1 ;;
+esac
+
+# Keep a normal user outbound ahead of both selector outbounds.
+yq -e '.outbounds | select(tag == "!!seq") | select(length > 0)' \
+    /config/outbound.yaml > /dev/null
+
 
 # 8 bytes (64 bits) of entropy as a 16-char hex string. Kept short on purpose:
 # the resulting header name (X-Tk-<16hex> = 21 chars) must fit within nginx's
@@ -46,13 +65,12 @@ XRAY_VLESS_DECRYPTION="mlkem768x25519plus.native.600s.${XRAY_VLESS_ENC_SEED}"
 XRAY_VLESS_ENCRYPTION="mlkem768x25519plus.native.0rtt.${XRAY_VLESS_ENC_CLIENT}"
 
 # --- Server config -------------------------------------------------------------
-# Render the {{VAR}} placeholders in server.yaml from the environment, then merge
-# the result (read from stdin as the first document) with the user-provided
-# outbounds.
+# Render the server template and prepend user outbounds to keep their default.
 XRAY_SERVER_CONFIG="/etc/xray/server.json"
 render-env /etc/xray/server.yaml \
     | yq eval-all \
-        '.outbounds += (select(fi == 1).outbounds) | select(fi == 0)' \
+        'select(fi == 1).outbounds as $user |
+         select(fi == 0) | .outbounds = ($user + .outbounds)' \
         - \
         /config/outbound.yaml \
         -o=json \
@@ -61,11 +79,6 @@ render-env /etc/xray/server.yaml \
 # --- Client configs ------------------------------------------------------------
 echo "Building xray client configs..."
 
-# Get public IP
-if [ -z "${PUBLIC_IP:+x}" ]; then
-    PUBLIC_IP=$(wget -qO- https://api.ipify.org)
-    [ -n "${PUBLIC_IP}" ] || { echo "Failed to determine PUBLIC_IP" >&2; exit 1; }
-fi
 
 # Pin the leaf certificates nginx serves. Clients use these hashes
 # (pinnedPeerCertSha256 / "pcs") instead of the removed "allowInsecure": they
