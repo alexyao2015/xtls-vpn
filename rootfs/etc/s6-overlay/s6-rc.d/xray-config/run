@@ -26,9 +26,11 @@ if [ -z "${PUBLIC_IP:+x}" ]; then
     [ -n "${PUBLIC_IP}" ] || { echo "Failed to determine PUBLIC_IP" >&2; exit 1; }
 fi
 
+# Generated clients always use REALITY_DOMAIN as SNI, including with a custom list.
 REALITY_SERVER_NAMES=${REALITY_SERVER_NAMES:-${REALITY_DOMAIN},${XHTTP_DOMAIN}}
 REALITY_SERVER_NAMES=$(yq -n -o=json -I=0 \
-    'strenv(REALITY_SERVER_NAMES) | split(",") | map(trim | select(. != ""))')
+    '(strenv(REALITY_SERVER_NAMES) | split(",")) + [strenv(REALITY_DOMAIN)] |
+     map(trim | select(. != "")) | unique')
 REALITY_FORWARD_ALL_SNI=${REALITY_FORWARD_ALL_SNI:-false}
 case "${REALITY_FORWARD_ALL_SNI}" in
     true|false) ;;
