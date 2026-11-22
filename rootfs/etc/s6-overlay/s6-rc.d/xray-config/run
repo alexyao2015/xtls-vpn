@@ -31,11 +31,8 @@ REALITY_SERVER_NAMES=${REALITY_SERVER_NAMES:-${REALITY_DOMAIN},${XHTTP_DOMAIN}}
 REALITY_SERVER_NAMES=$(yq -n -o=json -I=0 \
     '(strenv(REALITY_SERVER_NAMES) | split(",")) + [strenv(REALITY_DOMAIN)] |
      map(trim | select(. != "")) | unique')
-REALITY_FORWARD_ALL_SNI=${REALITY_FORWARD_ALL_SNI:-false}
-case "${REALITY_FORWARD_ALL_SNI}" in
-    true|false) ;;
-    *) echo "REALITY_FORWARD_ALL_SNI must be true or false" >&2; exit 1 ;;
-esac
+REALITY_FORWARD_DOMAINS=$(yq -n -o=json -I=0 \
+    'env(REALITY_SERVER_NAMES) | map("full:" + .)')
 
 # Keep a normal user outbound ahead of both selector outbounds.
 yq -e '.outbounds | select(tag == "!!seq") | select(length > 0)' \
