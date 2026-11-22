@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     certbot \
     libqrencode-tools \
     nginx \
+    nginx-mod-stream \
     openssl \
     python3 \
     s6-overlay \

@@ -109,10 +109,10 @@ inbounds:
     #   metadataOnly: false
     #   routeOnly: true
   - tag: REALITY_TARGET
-    listen: /dev/shm/reality-target.sock,0666
+    listen: /dev/shm/reality-forward.sock,0666
     protocol: dokodemo-door
     settings:
-      address: 127.0.0.1
+      address: 0.0.0.0
       port: 443
       network: tcp
     streamSettings:
@@ -161,19 +161,19 @@ routing:
   # Route sniffed names without resolving them first.
   domainStrategy: AsIs
   rules:
+    # Failed sniffing leaves the sentinel address, which the relay blocks.
+    # Never substitute the local certificate for an unreadable external SNI.
     - type: field
       inboundTag: [REALITY_TARGET]
-      domain:
-        - "full:{{REALITY_DOMAIN}}"
-        - "full:{{XHTTP_DOMAIN}}"
-      outboundTag: REALITY_LOCAL
+      ip: [0.0.0.0]
+      outboundTag: REALITY_AUTO_DIRECT
 
     - type: field
       inboundTag: [REALITY_TARGET]
       domain: {{REALITY_FORWARD_DOMAINS}}
       outboundTag: REALITY_AUTO_DIRECT
 
-    # Unlisted names and connections without SNI use the local website.
+    # nginx handles owned names and no SNI; other unlisted names stay local.
     - type: field
       inboundTag: [REALITY_TARGET]
       outboundTag: REALITY_LOCAL
